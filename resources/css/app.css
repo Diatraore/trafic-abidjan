@@ -1,0 +1,4 @@
+@import 'tailwindcss';
+
+/* Indique à Tailwind où chercher les classes utilisées dans les gabarits Edge */
+@source '../views';
