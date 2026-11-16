@@ -20,8 +20,8 @@ Prototype académique d'application web de **prédiction des congestions routiè
 
 - [x] **Étape 1** : initialisation, PostgreSQL, authentification (inscription, connexion, déconnexion, pages protégées)
 - [x] **Étape 2** : formulaire de prédiction, mécanisme de repli (règles horaires), enregistrement en base
-- [ ] Étape 3 : carte Google Maps et sélection des lieux (Places Autocomplete)
-- [ ] Étape 4 : intégration de l'IA (Groq)
+- [x] **Étape 3** : intégration de l'IA (Groq, `openai/gpt-oss-120b`) avec validation stricte et repli automatique
+- [ ] Étape 4 : carte Google Maps et sélection des lieux (Places Autocomplete)
 - [ ] Étape 5 : Routes API et OpenWeatherMap
 - [ ] Étape 6 : historique, export CSV, tests finaux
 
@@ -75,6 +75,7 @@ app/
   controllers/auth_controller.ts   Inscription, connexion, déconnexion
   controllers/predictions_controller.ts  Formulaire, estimation, résultat
   services/fallback_service.ts     Algorithme de repli (règles horaires)
+  services/ai_prediction_service.ts  Estimation par l'IA (Groq) + validation stricte
   services/contracts.ts            Interfaces des services (Maps, Météo, IA)
   helpers/dates.ts                 Dates interprétées dans le fuseau Africa/Abidjan
   middleware/                      auth (pages privées), guest (pages visiteurs)
@@ -82,6 +83,7 @@ app/
   models/prediction.ts             Estimation (appartient à un utilisateur)
   validators/                      Règles VineJS (auth, prédiction, date future)
 config/prediction.ts               Règles horaires et fuseau horaire
+config/ai.ts                       Paramètres de l'IA (lus depuis .env)
 database/migrations/               Création des tables
 resources/views/                   Gabarits Edge (layout, pages)
 start/routes.ts                    Déclaration des routes
@@ -106,6 +108,35 @@ Ces règles sont des **hypothèses de conception**, non des statistiques validé
 aucune donnée historique de trafic n'a pu être obtenue. Elles ne tiennent compte
 ni de l'itinéraire, ni du jour de la semaine, ni du trafic réel, ni de la météo.
 Aucune durée de trajet n'est calculée (« Indisponible »).
+
+## Intelligence artificielle (étape 3)
+
+Le `AiPredictionService` interroge l'API Groq (modèle configurable par `GROQ_MODEL`,
+par défaut `openai/gpt-oss-120b`, LLaMA 3.3 ayant été retiré par Groq le 16/08/2026).
+
+1. Requête structurée : lieux, date, jour, heure, durées Google et météo (si disponibles),
+   hypothèses horaires présentées comme non validées.
+2. Réponse JSON imposée (`congestion_level`, `duration_minutes`, `explanation`),
+   puis **validée strictement** (VineJS) : niveau inconnu, durée négative ou décimale,
+   explication vide → réponse rejetée.
+3. Contrôle de cohérence : une durée proposée sans données d'itinéraire est rejetée.
+4. Délai maximal configurable (`GROQ_TIMEOUT_MS`, 8 s par défaut).
+
+En cas d'échec, le **mécanisme de repli** prend le relais et la raison est enregistrée
+(`fallback_reason`) : IA non configurée, mode repli forcé, plafond quotidien atteint,
+délai dépassé, erreur réseau ou HTTP, quota Groq, réponse invalide ou incohérente.
+
+| Variable | Rôle | Défaut |
+|---|---|---|
+| `GROQ_API_KEY` | Clé secrète (côté serveur uniquement) | vide → repli |
+| `GROQ_MODEL` | Modèle Groq | `openai/gpt-oss-120b` |
+| `GROQ_TIMEOUT_MS` | Délai maximal | `8000` |
+| `GROQ_RESPONSE_FORMAT` | `json_schema` (strict) ou `json_object` | `json_schema` |
+| `GROQ_DAILY_LIMIT` | Plafond applicatif d'estimations par jour | `200` |
+| `PREDICTION_FORCE_FALLBACK` | `true` = ne jamais appeler l'IA | `false` |
+
+Le modèle **n'observe pas le trafic réel** : ses estimations reposent uniquement sur
+les données transmises et sur des connaissances générales.
 
 ## Sécurité
 

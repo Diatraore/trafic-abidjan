@@ -1,5 +1,5 @@
 import { APP_TIMEZONE, HOURLY_RULES, type HourlyRule } from '#config/prediction'
-import type { PredictionContext, PredictionResult } from '#services/contracts'
+import type { FallbackReason, PredictionContext, PredictionResult } from '#services/contracts'
 
 /**
  * Algorithme de repli (FallbackService).
@@ -15,7 +15,10 @@ import type { PredictionContext, PredictionResult } from '#services/contracts'
 export default class FallbackService {
   constructor(private rules: HourlyRule[] = HOURLY_RULES) {}
 
-  estimate(context: PredictionContext): PredictionResult {
+  /**
+   * @param reason raison du repli, conservée en base pour l'analyse
+   */
+  estimate(context: PredictionContext, reason: FallbackReason | null = null): PredictionResult {
     // L'heure est lue dans le fuseau d'Abidjan, quel que soit le fuseau du serveur.
     const localTime = context.departureAt.setZone(APP_TIMEZONE)
     const rule = this.findRule(localTime.hour)
@@ -33,6 +36,8 @@ export default class FallbackService {
       source: 'repli',
       method: 'repli_regles_horaires',
       aiResponseTimeMs: null,
+      aiModel: null,
+      fallbackReason: reason,
     }
   }
 

@@ -1,7 +1,9 @@
 import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
+import logger from '@adonisjs/core/services/logger'
 import FallbackService from '#services/fallback_service'
-import type { Place, PredictionContext } from '#services/contracts'
+import AiPredictionService, { AiPredictionError } from '#services/ai_prediction_service'
+import type { Place, PredictionContext, PredictionResult } from '#services/contracts'
 import { createPredictionValidator } from '#validators/prediction'
 import { toAbidjanDateTime, todayInAbidjan } from '#helpers/dates'
 
@@ -10,12 +12,15 @@ import { toAbidjanDateTime, todayInAbidjan } from '#helpers/dates'
  *
  * Il orchestre le traitement (validation → estimation → enregistrement)
  * mais ne contient pas la logique métier, déléguée aux services.
- * Le FallbackService est fourni par le conteneur d'AdonisJS (@inject),
- * ce qui permet de le remplacer facilement dans les tests.
+ * Les services sont fournis par le conteneur d'AdonisJS (@inject),
+ * ce qui permet de les remplacer facilement dans les tests.
  */
 @inject()
 export default class PredictionsController {
-  constructor(private fallbackService: FallbackService) {}
+  constructor(
+    private aiService: AiPredictionService,
+    private fallbackService: FallbackService
+  ) {}
 
   /** Tableau de bord : formulaire + dernières estimations de l'utilisateur. */
   async create({ view, auth }: HttpContext) {
@@ -43,8 +48,8 @@ export default class PredictionsController {
       weather: null,
     }
 
-    // 3. Estimation : IA à l'étape 4 ; pour l'instant, mécanisme de repli uniquement.
-    const result = this.fallbackService.estimate(context)
+    // 3. Estimation : IA d'abord, mécanisme de repli en cas d'échec
+    const result = await this.estimate(context)
 
     // 4. Enregistrement, rattaché à l'utilisateur connecté
     const prediction = await auth.user!.related('predictions').create({
@@ -64,9 +69,30 @@ export default class PredictionsController {
       predictionSource: result.source,
       predictionMethod: result.method,
       aiResponseTimeMs: result.aiResponseTimeMs,
+      aiModel: result.aiModel,
+      fallbackReason: result.fallbackReason,
     })
 
     return response.redirect().toRoute('predictions.show', { id: prediction.id })
+  }
+
+  /**
+   * Essaie l'IA ; si elle échoue (clé absente, délai dépassé, réponse
+   * invalide…), utilise le FallbackService en conservant la raison.
+   * Une panne de Groq ne provoque donc jamais d'erreur serveur.
+   */
+  private async estimate(context: PredictionContext): Promise<PredictionResult> {
+    try {
+      return await this.aiService.predict(context)
+    } catch (error) {
+      if (error instanceof AiPredictionError) {
+        logger.info({ reason: error.reason }, `Repli utilisé : ${error.message}`)
+        return this.fallbackService.estimate(context, error.reason)
+      }
+      // Erreur imprévue (bogue) : on la journalise mais l'utilisateur obtient quand même un résultat
+      logger.error({ err: error }, 'Erreur inattendue du service d’IA')
+      return this.fallbackService.estimate(context, 'erreur_reseau')
+    }
   }
 
   /** Affiche une estimation, uniquement si elle appartient à l'utilisateur connecté. */

@@ -1,13 +1,21 @@
 import { test } from '@japa/runner'
 import { DateTime } from 'luxon'
+import app from '@adonisjs/core/services/app'
 import testUtils from '@adonisjs/core/services/test_utils'
 import User from '#models/user'
 import Prediction from '#models/prediction'
+import AiPredictionService from '#services/ai_prediction_service'
+import {
+  VALID_ANSWER,
+  fakeGroqAnswer,
+  forbiddenFetch,
+  testAiConfig,
+} from '#tests/helpers/fake_groq'
 
 /**
  * Tests fonctionnels des prédictions.
- * Aucun appel à une API externe : à l'étape 2, seul le mécanisme de repli
- * (règles horaires, calcul local) est utilisé.
+ * Aucun appel à une API externe : sans clé GROQ_API_KEY (voir .env.test),
+ * l'IA est désactivée ; les tests de l'IA remplacent Groq par une simulation.
  */
 const ZONE = 'Africa/Abidjan'
 const tomorrow = () => DateTime.now().setZone(ZONE).plus({ days: 1 }).toISODate()!
@@ -120,6 +128,9 @@ test.group('Prédictions', (group) => {
     assert.isNull(prediction.estimatedDurationMinutes)
     assert.isNull(prediction.departureLatitude)
     assert.isNotEmpty(prediction.explanation)
+    // Sans clé Groq, la raison du repli est conservée
+    assert.equal(prediction.fallbackReason, 'ia_non_configuree')
+    assert.isNull(prediction.aiModel)
 
     // Date et heure conservées (heure d'Abidjan)
     const quand = prediction.departureDatetime.setZone(ZONE)
@@ -182,5 +193,102 @@ test.group('Prédictions', (group) => {
 
     response.assertStatus(404)
     assert.notInclude(response.text(), 'Cocody')
+  })
+})
+
+test.group('Prédictions — intégration de l’IA (Groq simulé)', (group) => {
+  group.each.setup(() => testUtils.db().withGlobalTransaction())
+  // Après chaque test, on remet le vrai service dans le conteneur
+  group.each.teardown(() => app.container.restore(AiPredictionService))
+
+  /** Remplace le service d'IA par une version utilisant un faux Groq. */
+  function simulerIa(service: AiPredictionService) {
+    app.container.swap(AiPredictionService, () => service)
+  }
+
+  test('enregistre une estimation produite par l’IA', async ({ client, assert }) => {
+    const user = await creerUtilisateur()
+    simulerIa(
+      new AiPredictionService(testAiConfig(), fakeGroqAnswer(VALID_ANSWER).fetchFn, async () => 0)
+    )
+
+    await client.post('/predictions').form(formulaire()).loginAs(user).withCsrfToken().redirects(0)
+
+    const prediction = await Prediction.firstOrFail()
+    assert.equal(prediction.userId, user.id)
+    assert.equal(prediction.predictionSource, 'ia')
+    assert.equal(prediction.predictionMethod, 'ia')
+    assert.equal(prediction.congestionLevel, 'dense')
+    assert.equal(prediction.aiModel, 'openai/gpt-oss-120b')
+    assert.isNotNull(prediction.aiResponseTimeMs)
+    assert.isNull(prediction.fallbackReason)
+    assert.isNull(prediction.estimatedDurationMinutes)
+
+    const page = await client.get(`/predictions/${prediction.id}`).loginAs(user)
+    page.assertTextIncludes('Intelligence artificielle')
+    page.assertTextIncludes('openai/gpt-oss-120b')
+    page.assertTextIncludes('observe pas le trafic réel')
+  })
+
+  test('bascule sur le repli si la réponse de l’IA est invalide', async ({ client, assert }) => {
+    const user = await creerUtilisateur()
+    const reponseInvalide = { ...VALID_ANSWER, congestion_level: 'apocalyptique' }
+    simulerIa(
+      new AiPredictionService(
+        testAiConfig(),
+        fakeGroqAnswer(reponseInvalide).fetchFn,
+        async () => 0
+      )
+    )
+
+    const response = await client
+      .post('/predictions')
+      .form(formulaire())
+      .loginAs(user)
+      .withCsrfToken()
+      .redirects(0)
+
+    response.assertStatus(302) // aucune erreur serveur
+    const prediction = await Prediction.firstOrFail()
+    assert.equal(prediction.predictionSource, 'repli')
+    assert.equal(prediction.predictionMethod, 'repli_regles_horaires')
+    assert.equal(prediction.fallbackReason, 'reponse_invalide')
+    assert.isNull(prediction.aiModel)
+
+    const page = await client.get(`/predictions/${prediction.id}`).loginAs(user)
+    page.assertTextIncludes('Raison du repli')
+    page.assertTextIncludes('invalide, donc rejetée')
+  })
+
+  test('bascule sur le repli si Groq est en panne', async ({ client, assert }) => {
+    const user = await creerUtilisateur()
+    simulerIa(
+      new AiPredictionService(testAiConfig(), fakeGroqAnswer(null, 503).fetchFn, async () => 0)
+    )
+
+    const response = await client
+      .post('/predictions')
+      .form(formulaire())
+      .loginAs(user)
+      .withCsrfToken()
+      .redirects(0)
+
+    response.assertStatus(302)
+    const prediction = await Prediction.firstOrFail()
+    assert.equal(prediction.predictionSource, 'repli')
+    assert.equal(prediction.fallbackReason, 'erreur_http')
+  })
+
+  test('n’appelle pas Groq en mode repli forcé', async ({ client, assert }) => {
+    const user = await creerUtilisateur()
+    simulerIa(
+      new AiPredictionService(testAiConfig({ forceFallback: true }), forbiddenFetch, async () => 0)
+    )
+
+    await client.post('/predictions').form(formulaire()).loginAs(user).withCsrfToken().redirects(0)
+
+    const prediction = await Prediction.firstOrFail()
+    assert.equal(prediction.predictionSource, 'repli')
+    assert.equal(prediction.fallbackReason, 'mode_repli_force')
   })
 })

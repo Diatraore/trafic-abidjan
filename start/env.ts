@@ -35,4 +35,16 @@ export default await Env.create(new URL('../', import.meta.url), {
   DB_USER: Env.schema.string(),
   DB_PASSWORD: Env.schema.string.optional(),
   DB_DATABASE: Env.schema.string(),
+
+  /*
+  |----------------------------------------------------------
+  | Intelligence artificielle (Groq) — clé SECRÈTE, côté serveur uniquement
+  |----------------------------------------------------------
+  */
+  GROQ_API_KEY: Env.schema.string.optional(),
+  GROQ_MODEL: Env.schema.string.optional(),
+  GROQ_TIMEOUT_MS: Env.schema.number.optional(),
+  GROQ_RESPONSE_FORMAT: Env.schema.enum.optional(['json_schema', 'json_object'] as const),
+  GROQ_DAILY_LIMIT: Env.schema.number.optional(),
+  PREDICTION_FORCE_FALLBACK: Env.schema.boolean.optional(),
 })

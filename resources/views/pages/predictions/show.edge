@@ -35,6 +35,14 @@
         <div>
           <dt class="text-sm text-slate-500">Méthode</dt>
           <dd class="font-medium">{{ prediction.methodLabel }}</dd>
+          @if(prediction.aiModel)
+            <dd class="text-xs text-slate-500">
+              Modèle {{ prediction.aiModel }} — réponse en {{ prediction.aiResponseTimeMs }} ms
+            </dd>
+          @end
+          @if(prediction.fallbackReasonLabel)
+            <dd class="text-xs text-slate-500">Raison du repli : {{ prediction.fallbackReasonLabel }}</dd>
+          @end
         </div>
         <div>
           <dt class="text-sm text-slate-500">Durée estimée</dt>
@@ -52,6 +60,9 @@
         <strong>Avertissement :</strong>
         @if(prediction.predictionMethod === 'repli_regles_horaires')
           estimation expérimentale basée sur des hypothèses horaires, sans données de trafic en temps réel.
+        @elseif(prediction.predictionSource === 'ia')
+          estimation expérimentale produite par un modèle de langage à partir des seules
+          informations affichées. Le modèle n'observe pas le trafic réel.
         @else
           estimation expérimentale, à ne pas considérer comme une mesure du trafic réel.
         @end

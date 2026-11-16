@@ -8,7 +8,7 @@
 | OpenWeatherMap ou Groq (ou les remplacer par un autre fournisseur) sans
 | réécrire la logique existante.
 |
-| Étape 2 : seul le FallbackService est implémenté.
+| Implémentés : FallbackService (étape 2), AiPredictionService (étape 3).
 |
 */
 
@@ -25,6 +25,20 @@ export type PredictionSource = (typeof PREDICTION_SOURCES)[number]
 /** Méthode précise utilisée pour produire l'estimation. */
 export const PREDICTION_METHODS = ['ia', 'repli_ratio_google', 'repli_regles_horaires'] as const
 export type PredictionMethod = (typeof PREDICTION_METHODS)[number]
+
+/** Raisons pour lesquelles le mécanisme de repli remplace l'IA. */
+export const FALLBACK_REASONS = [
+  'mode_repli_force',
+  'ia_non_configuree',
+  'plafond_quotidien_atteint',
+  'delai_depasse',
+  'erreur_reseau',
+  'erreur_http',
+  'quota_groq_atteint',
+  'reponse_invalide',
+  'reponse_incoherente',
+] as const
+export type FallbackReason = (typeof FALLBACK_REASONS)[number]
 
 /**
  * Un lieu. Les coordonnées sont facultatives à l'étape 2 (saisie manuelle)
@@ -70,6 +84,10 @@ export interface PredictionResult {
   source: PredictionSource
   method: PredictionMethod
   aiResponseTimeMs: number | null
+  /** Modèle d'IA utilisé (null pour le repli) */
+  aiModel: string | null
+  /** Raison du repli (null si l'IA a répondu correctement) */
+  fallbackReason: FallbackReason | null
 }
 
 /** Futur MapsService (Google Routes API) — étape 5, non implémenté. */
@@ -82,7 +100,7 @@ export interface WeatherProvider {
   getForecast(place: Place, at: DateTime): Promise<WeatherForecast | null>
 }
 
-/** Futur AiPredictionService (Groq) — étape 4, non implémenté. */
+/** AiPredictionService (Groq) — implémenté à l'étape 3. */
 export interface AiPredictor {
   predict(context: PredictionContext): Promise<PredictionResult>
 }

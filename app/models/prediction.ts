@@ -2,7 +2,12 @@ import { DateTime } from 'luxon'
 import { BaseModel, belongsTo, column } from '@adonisjs/lucid/orm'
 import type { BelongsTo } from '@adonisjs/lucid/types/relations'
 import User from '#models/user'
-import type { CongestionLevel, PredictionMethod, PredictionSource } from '#services/contracts'
+import type {
+  CongestionLevel,
+  FallbackReason,
+  PredictionMethod,
+  PredictionSource,
+} from '#services/contracts'
 
 /**
  * PostgreSQL renvoie les colonnes NUMERIC sous forme de texte
@@ -24,6 +29,18 @@ const METHOD_LABELS: Record<PredictionMethod, string> = {
   ia: 'Intelligence artificielle',
   repli_ratio_google: 'Repli — ratio des durées Google',
   repli_regles_horaires: 'Repli — règles horaires',
+}
+
+const FALLBACK_REASON_LABELS: Record<FallbackReason, string> = {
+  mode_repli_force: 'mode repli forcé par la configuration',
+  ia_non_configuree: "service d'IA non configuré",
+  plafond_quotidien_atteint: "plafond quotidien d'appels à l'IA atteint",
+  delai_depasse: "l'IA n'a pas répondu dans le délai imparti",
+  erreur_reseau: "service d'IA injoignable",
+  erreur_http: "erreur renvoyée par le service d'IA",
+  quota_groq_atteint: 'quota du service Groq atteint',
+  reponse_invalide: "réponse de l'IA invalide, donc rejetée",
+  reponse_incoherente: "réponse de l'IA incohérente, donc rejetée",
 }
 
 export default class Prediction extends BaseModel {
@@ -81,6 +98,12 @@ export default class Prediction extends BaseModel {
   @column()
   declare aiResponseTimeMs: number | null
 
+  @column()
+  declare aiModel: string | null
+
+  @column()
+  declare fallbackReason: FallbackReason | null
+
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
 
@@ -97,5 +120,9 @@ export default class Prediction extends BaseModel {
 
   get methodLabel() {
     return METHOD_LABELS[this.predictionMethod]
+  }
+
+  get fallbackReasonLabel() {
+    return this.fallbackReason ? FALLBACK_REASON_LABELS[this.fallbackReason] : null
   }
 }
