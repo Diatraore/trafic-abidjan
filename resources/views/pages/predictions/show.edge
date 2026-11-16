@@ -1,0 +1,67 @@
+@layout({ title: 'Résultat de l’estimation' })
+  @let(when = prediction.departureDatetime.setZone('Africa/Abidjan').setLocale('fr'))
+
+  <div class="max-w-3xl mx-auto">
+    <a href="{{ route('dashboard') }}" class="text-sm text-emerald-700 hover:underline">← Retour au tableau de bord</a>
+
+    <div class="mt-4 bg-white rounded-lg border border-slate-200 overflow-hidden">
+      <div class="p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <p class="text-sm text-slate-500">Niveau de congestion estimé</p>
+          <div class="mt-2">
+            @!levelBadge({ level: prediction.congestionLevel, label: prediction.levelLabel, size: 'lg' })
+          </div>
+        </div>
+        <p class="text-xs text-slate-400">Estimation n° {{ prediction.id }}</p>
+      </div>
+
+      <dl class="p-6 grid gap-x-6 gap-y-4 sm:grid-cols-2">
+        <div>
+          <dt class="text-sm text-slate-500">Départ</dt>
+          <dd class="font-medium">{{ prediction.departureLabel }}</dd>
+        </div>
+        <div>
+          <dt class="text-sm text-slate-500">Arrivée</dt>
+          <dd class="font-medium">{{ prediction.arrivalLabel }}</dd>
+        </div>
+        <div>
+          <dt class="text-sm text-slate-500">Date</dt>
+          <dd class="font-medium">{{ when.toFormat('cccc d LLLL yyyy') }}</dd>
+        </div>
+        <div>
+          <dt class="text-sm text-slate-500">Heure (Abidjan)</dt>
+          <dd class="font-medium">{{ when.toFormat("HH 'h' mm") }}</dd>
+        </div>
+        <div>
+          <dt class="text-sm text-slate-500">Méthode</dt>
+          <dd class="font-medium">{{ prediction.methodLabel }}</dd>
+        </div>
+        <div>
+          <dt class="text-sm text-slate-500">Durée estimée</dt>
+          <dd class="font-medium">
+            {{ prediction.estimatedDurationMinutes === null ? 'Indisponible' : prediction.estimatedDurationMinutes + ' min' }}
+          </dd>
+        </div>
+        <div class="sm:col-span-2">
+          <dt class="text-sm text-slate-500">Explication</dt>
+          <dd class="mt-1">{{ prediction.explanation }}</dd>
+        </div>
+      </dl>
+
+      <div class="px-6 py-4 bg-amber-50 border-t border-amber-200 text-sm text-amber-900" role="note">
+        <strong>Avertissement :</strong>
+        @if(prediction.predictionMethod === 'repli_regles_horaires')
+          estimation expérimentale basée sur des hypothèses horaires, sans données de trafic en temps réel.
+        @else
+          estimation expérimentale, à ne pas considérer comme une mesure du trafic réel.
+        @end
+      </div>
+    </div>
+
+    <div class="mt-6">
+      <a href="{{ route('dashboard') }}" class="inline-block px-5 py-2.5 rounded-md bg-emerald-600 text-white hover:bg-emerald-700">
+        Nouvelle estimation
+      </a>
+    </div>
+  </div>
+@end

@@ -1,0 +1,101 @@
+import { DateTime } from 'luxon'
+import { BaseModel, belongsTo, column } from '@adonisjs/lucid/orm'
+import type { BelongsTo } from '@adonisjs/lucid/types/relations'
+import User from '#models/user'
+import type { CongestionLevel, PredictionMethod, PredictionSource } from '#services/contracts'
+
+/**
+ * PostgreSQL renvoie les colonnes NUMERIC sous forme de texte
+ * (pour ne pas perdre de précision) : on les reconvertit en nombres.
+ */
+const coordinate = {
+  consume: (value: string | null) => (value === null ? null : Number(value)),
+}
+
+/** Libellés affichés à l'utilisateur. */
+const LEVEL_LABELS: Record<CongestionLevel, string> = {
+  fluide: 'Fluide',
+  modere: 'Modéré',
+  dense: 'Dense',
+  bloque: 'Bloqué',
+}
+
+const METHOD_LABELS: Record<PredictionMethod, string> = {
+  ia: 'Intelligence artificielle',
+  repli_ratio_google: 'Repli — ratio des durées Google',
+  repli_regles_horaires: 'Repli — règles horaires',
+}
+
+export default class Prediction extends BaseModel {
+  @column({ isPrimary: true })
+  declare id: number
+
+  @column()
+  declare userId: number
+
+  @column()
+  declare departureLabel: string
+
+  @column(coordinate)
+  declare departureLatitude: number | null
+
+  @column(coordinate)
+  declare departureLongitude: number | null
+
+  @column()
+  declare arrivalLabel: string
+
+  @column(coordinate)
+  declare arrivalLatitude: number | null
+
+  @column(coordinate)
+  declare arrivalLongitude: number | null
+
+  @column.dateTime()
+  declare departureDatetime: DateTime
+
+  @column()
+  declare congestionLevel: CongestionLevel
+
+  @column()
+  declare estimatedDurationMinutes: number | null
+
+  @column()
+  declare googleTrafficDurationMinutes: number | null
+
+  @column()
+  declare googleStaticDurationMinutes: number | null
+
+  @column()
+  declare weatherSummary: string | null
+
+  @column()
+  declare explanation: string
+
+  @column()
+  declare predictionSource: PredictionSource
+
+  @column()
+  declare predictionMethod: PredictionMethod
+
+  @column()
+  declare aiResponseTimeMs: number | null
+
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime
+
+  /** Chaque estimation appartient à un utilisateur. */
+  @belongsTo(() => User)
+  declare user: BelongsTo<typeof User>
+
+  get levelLabel() {
+    return LEVEL_LABELS[this.congestionLevel]
+  }
+
+  get methodLabel() {
+    return METHOD_LABELS[this.predictionMethod]
+  }
+}

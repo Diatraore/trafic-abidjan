@@ -13,6 +13,7 @@ import router from '@adonisjs/core/services/router'
 import { middleware } from '#start/kernel'
 
 const AuthController = () => import('#controllers/auth_controller')
+const PredictionsController = () => import('#controllers/predictions_controller')
 
 // Page d'accueil publique
 router.on('/').render('pages/home').as('home')
@@ -30,7 +31,13 @@ router
 // Pages privées : utilisateurs connectés uniquement
 router
   .group(() => {
-    router.on('/tableau-de-bord').render('pages/dashboard').as('dashboard')
+    // Le tableau de bord contient le formulaire de prédiction
+    router.get('/tableau-de-bord', [PredictionsController, 'create']).as('dashboard')
+    router.post('/predictions', [PredictionsController, 'store']).as('predictions.store')
+    router
+      .get('/predictions/:id', [PredictionsController, 'show'])
+      .where('id', router.matchers.number())
+      .as('predictions.show')
     router.post('/deconnexion', [AuthController, 'logout']).as('logout')
   })
   .use(middleware.auth())

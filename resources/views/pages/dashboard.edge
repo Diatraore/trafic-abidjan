@@ -1,9 +1,92 @@
 @layout({ title: 'Tableau de bord' })
   <h1 class="text-2xl font-semibold">Bonjour {{ auth.user.nom }}</h1>
-  <p class="mt-2 text-slate-600">
-    Cette page est privée : elle n'est accessible qu'aux utilisateurs connectés.
-  </p>
-  <div class="mt-6 rounded-lg border border-dashed border-slate-300 bg-white p-6 text-slate-500">
-    La sélection du départ et de l'arrivée sur la carte sera ajoutée à l'étape 2.
+  <p class="mt-1 text-slate-600">Estimez la congestion d'un déplacement à Abidjan.</p>
+
+  <div class="mt-6 grid gap-6 lg:grid-cols-3">
+    {{-- Formulaire de prédiction --}}
+    <section class="lg:col-span-2 bg-white rounded-lg border border-slate-200 p-6">
+      <h2 class="text-lg font-semibold mb-4">Nouvelle estimation</h2>
+
+      <form method="POST" action="{{ route('predictions.store') }}" class="space-y-5" novalidate>
+        {{ csrfField() }}
+
+        <div class="grid gap-5 sm:grid-cols-2">
+          <div>
+            <label for="depart" class="block text-sm font-medium">Lieu de départ</label>
+            <input id="depart" name="depart" type="text" value="{{ old('depart') || '' }}"
+              required minlength="2" maxlength="255" placeholder="Ex. : Cocody, Riviera 2"
+              class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+            {{-- Coordonnées : vides pour l'instant, remplies plus tard par Google Places --}}
+            <input type="hidden" name="depart_latitude" value="{{ old('depart_latitude') || '' }}" />
+            <input type="hidden" name="depart_longitude" value="{{ old('depart_longitude') || '' }}" />
+            @!fieldError({ name: 'depart' })
+            @!fieldError({ name: 'depart_latitude' })
+            @!fieldError({ name: 'depart_longitude' })
+          </div>
+
+          <div>
+            <label for="arrivee" class="block text-sm font-medium">Lieu d'arrivée</label>
+            <input id="arrivee" name="arrivee" type="text" value="{{ old('arrivee') || '' }}"
+              required minlength="2" maxlength="255" placeholder="Ex. : Plateau"
+              class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+            <input type="hidden" name="arrivee_latitude" value="{{ old('arrivee_latitude') || '' }}" />
+            <input type="hidden" name="arrivee_longitude" value="{{ old('arrivee_longitude') || '' }}" />
+            @!fieldError({ name: 'arrivee' })
+            @!fieldError({ name: 'arrivee_latitude' })
+            @!fieldError({ name: 'arrivee_longitude' })
+          </div>
+
+          <div>
+            <label for="date_deplacement" class="block text-sm font-medium">Date du déplacement</label>
+            <input id="date_deplacement" name="date_deplacement" type="date"
+              value="{{ old('date_deplacement') || '' }}" min="{{ minDate }}" required
+              class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+            @!fieldError({ name: 'date_deplacement' })
+          </div>
+
+          <div>
+            <label for="heure_deplacement" class="block text-sm font-medium">Heure du déplacement</label>
+            <input id="heure_deplacement" name="heure_deplacement" type="time"
+              value="{{ old('heure_deplacement') || '' }}" required
+              class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+            @!fieldError({ name: 'heure_deplacement' })
+          </div>
+        </div>
+
+        <p class="text-xs text-slate-500">
+          Heure d'Abidjan (GMT). Pour l'instant, les lieux sont saisis manuellement :
+          leur position exacte n'est pas encore prise en compte.
+        </p>
+
+        <button type="submit"
+          class="w-full sm:w-auto px-6 py-2.5 rounded-md bg-emerald-600 text-white font-medium hover:bg-emerald-700">
+          Estimer la congestion
+        </button>
+      </form>
+    </section>
+
+    {{-- Dernières estimations --}}
+    <section class="bg-white rounded-lg border border-slate-200 p-6">
+      <h2 class="text-lg font-semibold mb-4">Mes dernières estimations</h2>
+      @if(recentPredictions.length)
+        <ul class="divide-y divide-slate-100">
+          @each(prediction in recentPredictions)
+            <li>
+              <a href="{{ route('predictions.show', { id: prediction.id }) }}" class="block py-3 hover:bg-slate-50 -mx-2 px-2 rounded">
+                <div class="flex items-center justify-between gap-2">
+                  <span class="text-sm font-medium truncate">{{ prediction.departureLabel }} → {{ prediction.arrivalLabel }}</span>
+                  @!levelBadge({ level: prediction.congestionLevel, label: prediction.levelLabel })
+                </div>
+                <span class="text-xs text-slate-500">
+                  {{ prediction.departureDatetime.setZone('Africa/Abidjan').setLocale('fr').toFormat("d LLL yyyy 'à' HH'h'mm") }}
+                </span>
+              </a>
+            </li>
+          @end
+        </ul>
+      @else
+        <p class="text-sm text-slate-500">Aucune estimation pour le moment.</p>
+      @end
+    </section>
   </div>
 @end

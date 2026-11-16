@@ -19,8 +19,8 @@ Prototype académique d'application web de **prédiction des congestions routiè
 ## Avancement
 
 - [x] **Étape 1** : initialisation, PostgreSQL, authentification (inscription, connexion, déconnexion, pages protégées)
-- [ ] Étape 2 : carte Google Maps et sélection des lieux
-- [ ] Étape 3 : estimation par l'algorithme de repli et enregistrement
+- [x] **Étape 2** : formulaire de prédiction, mécanisme de repli (règles horaires), enregistrement en base
+- [ ] Étape 3 : carte Google Maps et sélection des lieux (Places Autocomplete)
 - [ ] Étape 4 : intégration de l'IA (Groq)
 - [ ] Étape 5 : Routes API et OpenWeatherMap
 - [ ] Étape 6 : historique, export CSV, tests finaux
@@ -73,9 +73,15 @@ Les tests utilisent la base séparée `trafic_abidjan_test` (voir `.env.test`).
 ```
 app/
   controllers/auth_controller.ts   Inscription, connexion, déconnexion
+  controllers/predictions_controller.ts  Formulaire, estimation, résultat
+  services/fallback_service.ts     Algorithme de repli (règles horaires)
+  services/contracts.ts            Interfaces des services (Maps, Météo, IA)
+  helpers/dates.ts                 Dates interprétées dans le fuseau Africa/Abidjan
   middleware/                      auth (pages privées), guest (pages visiteurs)
   models/user.ts                   Modèle Lucid ; hachage scrypt du mot de passe
-  validators/auth.ts               Règles VineJS des formulaires
+  models/prediction.ts             Estimation (appartient à un utilisateur)
+  validators/                      Règles VineJS (auth, prédiction, date future)
+config/prediction.ts               Règles horaires et fuseau horaire
 database/migrations/               Création des tables
 resources/views/                   Gabarits Edge (layout, pages)
 start/routes.ts                    Déclaration des routes
@@ -83,9 +89,28 @@ start/validator.ts                 Messages de validation en français
 tests/functional/                  Tests Japa
 ```
 
+## Mécanisme de repli (étape 2)
+
+Sans données cartographiques, le `FallbackService` applique des **règles horaires
+provisoires** définies dans `config/prediction.ts` (heure d'Abidjan) :
+
+| Plage horaire | Niveau attribué | Formulation |
+|---|---|---|
+| 23 h – 6 h 59 | fluide | circulation supposée fluide |
+| 7 h – 10 h 59 | dense | congestion potentiellement élevée |
+| 11 h – 15 h 59 | modéré | congestion supposée modérée |
+| 16 h – 19 h 59 | dense | congestion potentiellement élevée |
+| 20 h – 22 h 59 | fluide | circulation supposée fluide |
+
+Ces règles sont des **hypothèses de conception**, non des statistiques validées :
+aucune donnée historique de trafic n'a pu être obtenue. Elles ne tiennent compte
+ni de l'itinéraire, ni du jour de la semaine, ni du trafic réel, ni de la météo.
+Aucune durée de trajet n'est calculée (« Indisponible »).
+
 ## Sécurité
 
 - Mots de passe hachés avec **scrypt** ; jamais stockés ni affichés en clair.
 - Protection **CSRF** sur tous les formulaires (`@adonisjs/shield`).
 - Sessions par cookie signé et chiffré (clé `APP_KEY`).
 - Les secrets sont dans `.env`, exclu de Git.
+- Un utilisateur ne peut consulter que ses propres estimations (erreur 404 sinon).
