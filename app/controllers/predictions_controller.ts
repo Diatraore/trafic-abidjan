@@ -6,6 +6,7 @@ import AiPredictionService, { AiPredictionError } from '#services/ai_prediction_
 import type { Place, PredictionContext, PredictionResult } from '#services/contracts'
 import { createPredictionValidator } from '#validators/prediction'
 import { toAbidjanDateTime, todayInAbidjan } from '#helpers/dates'
+import mapsConfig from '#config/maps'
 
 /**
  * Contrôleur des estimations de congestion.
@@ -30,7 +31,16 @@ export default class PredictionsController {
       .orderBy('created_at', 'desc')
       .limit(5)
 
-    return view.render('pages/dashboard', { minDate: todayInAbidjan(), recentPredictions })
+    // Seules les informations NAVIGATEUR de Google Maps sont transmises à la vue.
+    const maps = {
+      enabled: Boolean(mapsConfig.browserKey),
+      browserKey: mapsConfig.browserKey ?? '',
+      mapId: mapsConfig.mapId,
+      center: mapsConfig.center,
+      zoom: mapsConfig.zoom,
+    }
+
+    return view.render('pages/dashboard', { minDate: todayInAbidjan(), recentPredictions, maps })
   }
 
   /** Traite le formulaire et enregistre l'estimation. */

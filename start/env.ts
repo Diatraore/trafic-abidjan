@@ -47,4 +47,12 @@ export default await Env.create(new URL('../', import.meta.url), {
   GROQ_RESPONSE_FORMAT: Env.schema.enum.optional(['json_schema', 'json_object'] as const),
   GROQ_DAILY_LIMIT: Env.schema.number.optional(),
   PREDICTION_FORCE_FALLBACK: Env.schema.boolean.optional(),
+
+  /*
+  |----------------------------------------------------------
+  | Google Maps Platform — clé NAVIGATEUR (restreinte au site et aux API)
+  |----------------------------------------------------------
+  */
+  GOOGLE_MAPS_BROWSER_KEY: Env.schema.string.optional(),
+  GOOGLE_MAPS_MAP_ID: Env.schema.string.optional(),
 })

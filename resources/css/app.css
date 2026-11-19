@@ -2,3 +2,9 @@
 
 /* Indique à Tailwind où chercher les classes utilisées dans les gabarits Edge */
 @source '../views';
+
+/* Champ de recherche Google Places (composant fourni par Google) */
+gmp-place-autocomplete {
+  width: 100%;
+  color-scheme: light;
+}

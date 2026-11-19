@@ -53,7 +53,8 @@ test.group('Prédictions', (group) => {
 
     response.assertStatus(200)
     response.assertTextIncludes('Lieu de départ')
-    response.assertTextIncludes("Lieu d'arrivée")
+    response.assertTextIncludes('for="arrivee"')
+    response.assertTextIncludes('arrivée')
     response.assertTextIncludes('Date du déplacement')
     response.assertTextIncludes('Heure du déplacement')
     response.assertTextIncludes('Estimer la congestion')

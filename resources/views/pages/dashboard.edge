@@ -7,34 +7,37 @@
     <section class="lg:col-span-2 bg-white rounded-lg border border-slate-200 p-6">
       <h2 class="text-lg font-semibold mb-4">Nouvelle estimation</h2>
 
-      <form method="POST" action="{{ route('predictions.store') }}" class="space-y-5" novalidate>
+      <form id="formulaire-prediction" method="POST" action="{{ route('predictions.store') }}" class="space-y-5" novalidate>
         {{ csrfField() }}
 
         <div class="grid gap-5 sm:grid-cols-2">
-          <div>
-            <label for="depart" class="block text-sm font-medium">Lieu de départ</label>
-            <input id="depart" name="depart" type="text" value="{{ old('depart') || '' }}"
-              required minlength="2" maxlength="255" placeholder="Ex. : Cocody, Riviera 2"
-              class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500" />
-            {{-- Coordonnées : vides pour l'instant, remplies plus tard par Google Places --}}
-            <input type="hidden" name="depart_latitude" value="{{ old('depart_latitude') || '' }}" />
-            <input type="hidden" name="depart_longitude" value="{{ old('depart_longitude') || '' }}" />
-            @!fieldError({ name: 'depart' })
-            @!fieldError({ name: 'depart_latitude' })
-            @!fieldError({ name: 'depart_longitude' })
-          </div>
+          @each(point in [
+            { name: 'depart', label: 'Lieu de départ', placeholder: 'Ex. : Cocody, Riviera 2' },
+            { name: 'arrivee', label: "Lieu d'arrivée", placeholder: 'Ex. : Plateau' }
+          ])
+            <div>
+              <label for="{{ point.name }}" class="block text-sm font-medium">{{ point.label }}</label>
 
-          <div>
-            <label for="arrivee" class="block text-sm font-medium">Lieu d'arrivée</label>
-            <input id="arrivee" name="arrivee" type="text" value="{{ old('arrivee') || '' }}"
-              required minlength="2" maxlength="255" placeholder="Ex. : Plateau"
-              class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500" />
-            <input type="hidden" name="arrivee_latitude" value="{{ old('arrivee_latitude') || '' }}" />
-            <input type="hidden" name="arrivee_longitude" value="{{ old('arrivee_longitude') || '' }}" />
-            @!fieldError({ name: 'arrivee' })
-            @!fieldError({ name: 'arrivee_latitude' })
-            @!fieldError({ name: 'arrivee_longitude' })
-          </div>
+              {{-- Recherche Google Places (insérée par resources/js/map.js si la carte est disponible) --}}
+              <div data-autocomplete="{{ point.name }}" class="mt-1 hidden"></div>
+
+              {{-- Saisie manuelle : utilisée si Google Maps est indisponible --}}
+              <input id="{{ point.name }}" name="{{ point.name }}" type="text"
+                value="{{ old(point.name) || '' }}" required minlength="2" maxlength="255"
+                placeholder="{{ point.placeholder }}" data-saisie-manuelle
+                class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+
+              {{-- Lieu retenu (affiché lorsque la carte est active) --}}
+              <p data-lieu-retenu="{{ point.name }}" class="mt-1 hidden text-xs text-slate-600"></p>
+
+              {{-- Coordonnées : remplies par Google Places ou par un clic sur la carte --}}
+              <input type="hidden" name="{{ point.name }}_latitude" value="{{ old(point.name + '_latitude') || '' }}" />
+              <input type="hidden" name="{{ point.name }}_longitude" value="{{ old(point.name + '_longitude') || '' }}" />
+              @!fieldError({ name: point.name })
+              @!fieldError({ name: point.name + '_latitude' })
+              @!fieldError({ name: point.name + '_longitude' })
+            </div>
+          @end
 
           <div>
             <label for="date_deplacement" class="block text-sm font-medium">Date du déplacement</label>
@@ -53,9 +56,42 @@
           </div>
         </div>
 
+        @if(maps.enabled)
+          {{-- Carte Google Maps (phase A : affichage, recherche et clic ; aucun calcul d'itinéraire) --}}
+          <div id="carte-trafic" class="hidden space-y-2"
+            data-maps-key="{{ maps.browserKey }}"
+            data-map-id="{{ maps.mapId }}"
+            data-center-lat="{{ maps.center.lat }}"
+            data-center-lng="{{ maps.center.lng }}"
+            data-zoom="{{ maps.zoom }}">
+            <div class="flex flex-wrap items-center gap-2 text-sm">
+              <span class="text-slate-600">Le prochain clic sur la carte définit :</span>
+              <button type="button" data-cible="depart" aria-pressed="true"
+                class="px-3 py-1 rounded-full border border-slate-300 aria-pressed:bg-emerald-600 aria-pressed:text-white aria-pressed:border-emerald-600">
+                A · Départ
+              </button>
+              <button type="button" data-cible="arrivee" aria-pressed="false"
+                class="px-3 py-1 rounded-full border border-slate-300 aria-pressed:bg-emerald-600 aria-pressed:text-white aria-pressed:border-emerald-600">
+                B · Arrivée
+              </button>
+              <button type="button" data-effacer class="ml-auto px-3 py-1 rounded-md text-slate-600 hover:bg-slate-100">
+                Effacer les points
+              </button>
+            </div>
+            <div data-carte class="h-80 w-full rounded-md border border-slate-200 bg-slate-100"></div>
+          </div>
+          <p data-carte-message class="hidden text-sm text-amber-700"></p>
+        @end
+
         <p class="text-xs text-slate-500">
-          Heure d'Abidjan (GMT). Pour l'instant, les lieux sont saisis manuellement :
-          leur position exacte n'est pas encore prise en compte.
+          Heure d'Abidjan (GMT).
+          @if(maps.enabled)
+            Recherchez un lieu ou cliquez sur la carte. Un point choisi par clic est désigné
+            par ses coordonnées GPS (libellé provisoire).
+          @else
+            Pour l'instant, les lieux sont saisis manuellement : leur position exacte n'est pas
+            encore prise en compte.
+          @end
         </p>
 
         <button type="submit"
@@ -63,6 +99,9 @@
           Estimer la congestion
         </button>
       </form>
+      @if(maps.enabled)
+        @vite(['resources/js/map.js'])
+      @end
     </section>
 
     {{-- Dernières estimations --}}

@@ -21,7 +21,8 @@ Prototype académique d'application web de **prédiction des congestions routiè
 - [x] **Étape 1** : initialisation, PostgreSQL, authentification (inscription, connexion, déconnexion, pages protégées)
 - [x] **Étape 2** : formulaire de prédiction, mécanisme de repli (règles horaires), enregistrement en base
 - [x] **Étape 3** : intégration de l'IA (Groq, `openai/gpt-oss-120b`) avec validation stricte et repli automatique
-- [ ] Étape 4 : carte Google Maps et sélection des lieux (Places Autocomplete)
+- [x] **Étape 4 — phase A** : carte Google Maps, recherche de lieux (Places API New), clic sur la carte, coordonnées enregistrées
+- [ ] Étape 4 — phase B : Routes API côté serveur (durées avec et sans trafic)
 - [ ] Étape 5 : Routes API et OpenWeatherMap
 - [ ] Étape 6 : historique, export CSV, tests finaux
 
@@ -137,6 +138,29 @@ délai dépassé, erreur réseau ou HTTP, quota Groq, réponse invalide ou incoh
 
 Le modèle **n'observe pas le trafic réel** : ses estimations reposent uniquement sur
 les données transmises et sur des connaissances générales.
+
+## Google Maps — phase A
+
+Avec `GOOGLE_MAPS_BROWSER_KEY` renseignée, le tableau de bord affiche une carte centrée
+sur Abidjan et deux champs de recherche Google Places (limités à la Côte d'Ivoire).
+Un clic sur la carte place le départ (A) puis l'arrivée (B) ; un point choisi par clic
+reçoit un libellé provisoire « Point GPS (lat, lng) ». Seuls les champs `formattedAddress`
+et `location` sont demandés à Google (niveau Essentials).
+
+Sans clé, ou si Google refuse la clé ou ne répond pas, le formulaire revient
+automatiquement à la saisie manuelle. Aucun itinéraire n'est calculé à cette phase.
+
+| Variable | Rôle |
+|---|---|
+| `GOOGLE_MAPS_BROWSER_KEY` | Clé navigateur, restreinte au site `http://localhost:3333/*` et aux API Maps JavaScript + Places (New) |
+| `GOOGLE_MAPS_MAP_ID` | Identifiant de carte (marqueurs). `DEMO_MAP_ID` pour les tests locaux |
+
+## Données AMUGA
+
+Des comptages routiers ont été communiqués par l'**Autorité de la Mobilité Urbaine dans le
+Grand Abidjan (AMUGA)**, avec autorisation d'utilisation et obligation de citation.
+Leur diffusion n'étant pas autorisée, **aucune donnée AMUGA (originale ou dérivée) n'est
+versée dans ce dépôt** : elles restent en local (voir `.gitignore`).
 
 ## Sécurité
 
