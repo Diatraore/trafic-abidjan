@@ -28,8 +28,23 @@ export const plugins: Config['plugins'] = [
  * Avant tous les tests : on applique les migrations sur la base de test
  * (trafic_abidjan_test, définie dans .env.test).
  */
+/**
+ * SÉCURITÉ DES TESTS : aucun appel réel à un service externe.
+ * Le fichier .env local peut contenir de vraies clés (Groq, Google) : une
+ * valeur vide dans .env.test ne suffit pas à les masquer. On les neutralise
+ * donc explicitement avant tout test. Les tests qui ont besoin de l'IA ou de
+ * la carte utilisent leurs propres fausses clés et des réponses simulées.
+ */
+async function neutraliserClesExternes() {
+  const { default: aiConfig } = await import('#config/ai')
+  const { default: mapsConfig } = await import('#config/maps')
+  aiConfig.apiKey = undefined
+  aiConfig.forceFallback = false
+  mapsConfig.browserKey = undefined
+}
+
 export const runnerHooks: Required<Pick<Config, 'setup' | 'teardown'>> = {
-  setup: [() => testUtils.db().migrate()],
+  setup: [neutraliserClesExternes, () => testUtils.db().migrate()],
   teardown: [],
 }
 

@@ -184,3 +184,14 @@ test.group("AiPredictionService — cas où Groq n'est pas appelé", () => {
     assert.equal(await failureReason(service), 'plafond_quotidien_atteint')
   })
 })
+
+test.group('Isolation des tests', () => {
+  test('les vraies clés du fichier .env ne sont jamais utilisées pendant les tests', async ({
+    assert,
+  }) => {
+    const { default: config } = await import('#config/ai')
+    const { default: maps } = await import('#config/maps')
+    assert.isUndefined(config.apiKey)
+    assert.isUndefined(maps.browserKey)
+  })
+})
