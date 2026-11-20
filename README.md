@@ -23,6 +23,7 @@ Prototype académique d'application web de **prédiction des congestions routiè
 - [x] **Étape 3** : intégration de l'IA (Groq, `openai/gpt-oss-120b`) avec validation stricte et repli automatique
 - [x] **Étape 4 — phase A** : carte Google Maps, recherche de lieux (Places API New), clic sur la carte, coordonnées enregistrées
 - [x] Étape 4 — phase B : `MapsService` (Routes API) préparé et testé — **appels réels désactivés**, non branché sur la prédiction
+- [x] Étape 4 — palier 1 (mode observation) : prévision Google Routes demandée explicitement depuis la page de résultat, enregistrée et affichée, **sans influence sur le niveau de congestion**
 - [ ] Étape 4 — phase C : affichage de l'itinéraire
 - [ ] Étape 5 : Routes API et OpenWeatherMap
 - [ ] Étape 6 : historique, export CSV, tests finaux
@@ -184,6 +185,16 @@ Google Cloud. Les protections ci-dessus ne s'appliquent qu'à l'application : si
 était copiée ailleurs, elle pourrait être utilisée sans limite. Elle doit rester dans
 `.env` et être restreinte avant tout déploiement. Le budget Google Cloud (5 $) alerte
 mais ne bloque pas les dépenses.
+
+**Palier 1 — mode observation.** Sur la page de résultat d'une estimation faite avec des
+coordonnées, la section « Prévision Google Routes — estimation non mesurée » permet de
+demander **explicitement** (bouton, visible seulement si `GOOGLE_ROUTES_ENABLED=true`)
+la prévision Google. Sont enregistrés : statut, durées avec trafic et de référence (minutes
+et secondes), distance, polyline, **heure de consultation** et **heure de départ transmise**
+(ce qui distingue une prévision pour un départ futur d'une estimation pour un départ
+immédiat). Un verrou empêche les doubles appels, un itinéraire déjà obtenu n'est jamais
+redemandé, et aucun appel n'est fait pour un départ passé. Ces données **n'influencent
+ni Groq ni le repli** : le niveau affiché reste celui de la logique existante.
 
 Le ratio `R = durée avec trafic / durée sans trafic` et ses seuils (`config/routes.ts`)
 sont préparés comme **hypothèses expérimentales** et ne sont **pas utilisés** par la

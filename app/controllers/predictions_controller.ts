@@ -1,4 +1,5 @@
 import { inject } from '@adonisjs/core'
+import app from '@adonisjs/core/services/app'
 import type { HttpContext } from '@adonisjs/core/http'
 import logger from '@adonisjs/core/services/logger'
 import FallbackService from '#services/fallback_service'
@@ -7,6 +8,7 @@ import type { Place, PredictionContext, PredictionResult } from '#services/contr
 import { createPredictionValidator } from '#validators/prediction'
 import { toAbidjanDateTime, todayInAbidjan } from '#helpers/dates'
 import mapsConfig from '#config/maps'
+import RouteObservationService from '#services/route_observation_service'
 
 /**
  * Contrôleur des estimations de congestion.
@@ -105,6 +107,39 @@ export default class PredictionsController {
     }
   }
 
+  /**
+   * Palier 1 (mode observation) : demande EXPLICITE de la prévision Google
+   * Routes pour une estimation existante. N'influence pas le niveau affiché.
+   */
+  async observeRoute({ params, auth, session, response }: HttpContext) {
+    // Uniquement les estimations de l'utilisateur connecté (sinon 404)
+    const prediction = await auth
+      .user!.related('predictions')
+      .query()
+      .where('id', params.id)
+      .firstOrFail()
+
+    const service = await app.container.make(RouteObservationService)
+    const resultat = await service.observe(prediction)
+
+    if (resultat === 'deja_obtenue') {
+      session.flash(
+        'success',
+        'La prévision Google Routes de cette estimation est déjà enregistrée.'
+      )
+    } else if (resultat === 'en_cours') {
+      session.flash('error', 'Une demande est déjà en cours pour cette estimation.')
+    } else if (prediction.routeStatus === 'ok') {
+      session.flash('success', 'Prévision Google Routes enregistrée.')
+    } else {
+      session.flash(
+        'error',
+        `Prévision Google Routes indisponible : ${prediction.routeStatusLabel}.`
+      )
+    }
+    return response.redirect().toRoute('predictions.show', { id: prediction.id })
+  }
+
   /** Affiche une estimation, uniquement si elle appartient à l'utilisateur connecté. */
   async show({ params, view, auth }: HttpContext) {
     // La recherche est limitée aux estimations de l'utilisateur :
@@ -115,7 +150,12 @@ export default class PredictionsController {
       .where('id', params.id)
       .firstOrFail()
 
-    return view.render('pages/predictions/show', { prediction })
+    // Seul un booléen est transmis à la vue : jamais la clé serveur.
+    const observation = await app.container.make(RouteObservationService)
+    return view.render('pages/predictions/show', {
+      prediction,
+      routesEnabled: observation.appelsActives(),
+    })
   }
 }
 

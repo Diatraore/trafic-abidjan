@@ -282,3 +282,33 @@ test.group('MapsService — réponses refusées et erreurs (aucune durée invent
     assert.notInclude(JSON.stringify(result), CLE_SERVEUR_TEST)
   })
 })
+
+test.group('MapsService — horodatage et départ passé', () => {
+  test('refuse un départ déjà passé, sans requête', async ({ assert }) => {
+    const { counter, state } = fakeCounter()
+    const service = new MapsService(testRoutesConfig(), forbiddenRoutesFetch, counter)
+    const result = await service.computeRoute(COCODY, PLATEAU, DateTime.now().minus({ hours: 2 }))
+    assert.equal(result.status, 'depart_passe')
+    assert.isFalse(result.requestSent)
+    assert.equal(state.reservations, 0)
+  })
+
+  test("renvoie l'heure de consultation et l'heure de départ transmise", async ({ assert }) => {
+    const service = new MapsService(
+      testRoutesConfig(),
+      fakeRoutesAnswer(ROUTE_OK).fetchFn,
+      fakeCounter().counter
+    )
+    const quand = demain8h()
+    const result = await service.computeRoute(COCODY, PLATEAU, quand)
+    assert.isNotNull(result.consultedAt)
+    assert.equal(result.departureTimeSent!.toMillis(), quand.toMillis())
+
+    const immediat = await service.computeRoute(
+      COCODY,
+      PLATEAU,
+      DateTime.now().plus({ seconds: 10 })
+    )
+    assert.isNull(immediat.departureTimeSent)
+  })
+})

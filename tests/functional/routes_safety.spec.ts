@@ -111,6 +111,7 @@ test.group('Données d’itinéraire — contraintes en base', (group) => {
     const prediction = await Prediction.create({
       ...(await base()),
       routeStatus: 'ok',
+      routeConsultedAt: DateTime.now(),
       googleTrafficDurationMinutes: 25,
       googleStaticDurationMinutes: 20,
       routeDistanceMeters: 7400,
@@ -125,6 +126,17 @@ test.group('Données d’itinéraire — contraintes en base', (group) => {
   test('refuse un statut « ok » sans durées Google', async ({ assert }) => {
     await assert.rejects(async () => {
       await Prediction.create({ ...(await base()), routeStatus: 'ok' })
+    })
+  })
+
+  test('refuse un statut « ok » sans heure de consultation', async ({ assert }) => {
+    await assert.rejects(async () => {
+      await Prediction.create({
+        ...(await base()),
+        routeStatus: 'ok',
+        googleTrafficDurationMinutes: 25,
+        googleStaticDurationMinutes: 20,
+      })
     })
   })
 

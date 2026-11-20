@@ -69,6 +69,101 @@
       </div>
     </div>
 
+    {{-- Palier 1 : mode observation Google Routes (n'influence pas le niveau affiché) --}}
+    <section id="prevision-google" class="mt-6 bg-white rounded-lg border border-sky-200 overflow-hidden">
+      <div class="px-6 py-4 bg-sky-50 border-b border-sky-200">
+        <h2 class="font-semibold text-sky-900">Prévision Google Routes — estimation non mesurée</h2>
+        <p class="mt-1 text-xs text-sky-800">
+          Données fournies par Google à titre de prévision. Elles ne sont pas des mesures du trafic
+          réel et n'influencent pas le niveau de congestion affiché ci-dessus.
+        </p>
+      </div>
+
+      <div class="p-6 text-sm">
+        @if(prediction.routeStatus === 'ok')
+          <dl class="grid gap-x-6 gap-y-3 sm:grid-cols-2">
+            <div>
+              <dt class="text-slate-500">Durée prévue avec trafic</dt>
+              <dd class="font-medium">
+                {{ prediction.googleTrafficDurationMinutes }} min
+                <span class="text-xs text-slate-500">({{ prediction.googleTrafficDurationSeconds }} s)</span>
+              </dd>
+            </div>
+            <div>
+              <dt class="text-slate-500">Durée de référence (sans trafic)</dt>
+              <dd class="font-medium">
+                {{ prediction.googleStaticDurationMinutes }} min
+                <span class="text-xs text-slate-500">({{ prediction.googleStaticDurationSeconds }} s)</span>
+              </dd>
+            </div>
+            <div>
+              <dt class="text-slate-500">Distance</dt>
+              <dd class="font-medium">
+                {{ prediction.routeDistanceMeters === null ? 'Inconnue' : (prediction.routeDistanceMeters / 1000).toFixed(1).replace('.', ',') + ' km' }}
+              </dd>
+            </div>
+            <div>
+              <dt class="text-slate-500">Ratio R (avec trafic / référence)</dt>
+              <dd class="font-medium">
+                {{ prediction.trafficRatio === null ? '—' : prediction.trafficRatio.toFixed(3).replace('.', ',') }}
+                <span class="block text-xs text-slate-500">Indicateur expérimental, non utilisé pour le niveau.</span>
+              </dd>
+            </div>
+            <div>
+              <dt class="text-slate-500">Consultation de Google</dt>
+              <dd class="font-medium">
+                {{ prediction.routeConsultedAt.setZone('Africa/Abidjan').setLocale('fr').toFormat("d LLL yyyy 'à' HH'h'mm") }}
+              </dd>
+            </div>
+            <div>
+              <dt class="text-slate-500">Type de donnée</dt>
+              <dd class="font-medium">
+                @if(prediction.routeDepartureTimeSent)
+                  Prévision pour un départ futur
+                  ({{ prediction.routeDepartureTimeSent.setZone('Africa/Abidjan').setLocale('fr').toFormat("d LLL 'à' HH'h'mm") }},
+                  soit {{ Math.round(prediction.forecastHorizonHours) }} h après la consultation)
+                @else
+                  Estimation pour un départ immédiat (conditions au moment de la consultation)
+                @end
+              </dd>
+            </div>
+          </dl>
+        @elseif(!prediction.hasCoordinates)
+          <p class="text-slate-600">
+            Indisponible : cette estimation a été faite sans coordonnées GPS (saisie manuelle).
+          </p>
+        @else
+          @if(prediction.routeStatus)
+            <p class="text-slate-600">
+              Dernière demande : {{ prediction.routeStatusLabel }}
+              @if(prediction.routeConsultedAt)
+                ({{ prediction.routeConsultedAt.setZone('Africa/Abidjan').setLocale('fr').toFormat("d LLL yyyy 'à' HH'h'mm") }})
+              @end
+            </p>
+          @else
+            <p class="text-slate-600">Aucune prévision Google demandée pour cette estimation.</p>
+          @end
+
+          @if(routesEnabled)
+            <form method="POST" action="{{ route('predictions.route', { id: prediction.id }) }}" class="mt-4"
+              onsubmit="this.querySelector('button').disabled = true">
+              {{ csrfField() }}
+              <button type="submit" class="px-4 py-2 rounded-md bg-sky-700 text-white hover:bg-sky-800">
+                Demander la prévision Google Routes (1 appel)
+              </button>
+              <p class="mt-2 text-xs text-slate-500">
+                Déclenche un appel réel à Google Routes API, compté dans le plafond quotidien.
+              </p>
+            </form>
+          @else
+            <p class="mt-2 text-xs text-slate-500">
+              Appels Google Routes désactivés (GOOGLE_ROUTES_ENABLED=false) : aucune demande possible.
+            </p>
+          @end
+        @end
+      </div>
+    </section>
+
     <div class="mt-6">
       <a href="{{ route('dashboard') }}" class="inline-block px-5 py-2.5 rounded-md bg-emerald-600 text-white hover:bg-emerald-700">
         Nouvelle estimation

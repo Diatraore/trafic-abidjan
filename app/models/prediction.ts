@@ -44,6 +44,24 @@ const FALLBACK_REASON_LABELS: Record<FallbackReason, string> = {
   reponse_incoherente: "réponse de l'IA incohérente, donc rejetée",
 }
 
+const ROUTE_STATUS_LABELS: Record<RouteStatus, string> = {
+  ok: 'itinéraire obtenu',
+  en_cours: 'demande en cours',
+  desactive: 'appels Google Routes désactivés (GOOGLE_ROUTES_ENABLED=false)',
+  non_configure: 'clé serveur Google Routes absente',
+  coordonnees_manquantes: 'lieux sans coordonnées GPS',
+  coordonnees_invalides: 'coordonnées GPS invalides',
+  depart_passe: 'départ déjà passé : aucune prévision demandée',
+  plafond_atteint: "plafond quotidien d'appels atteint",
+  compteur_indisponible: 'compteur indisponible : appel bloqué par précaution',
+  delai_depasse: "Google n'a pas répondu dans le délai imparti",
+  erreur_reseau: 'Google injoignable',
+  erreur_http: 'erreur renvoyée par Google',
+  quota_google_atteint: 'quota Google atteint',
+  reponse_invalide: 'réponse de Google invalide, donc rejetée',
+  aucun_itineraire: 'aucun itinéraire proposé par Google',
+}
+
 export default class Prediction extends BaseModel {
   @column({ isPrimary: true })
   declare id: number
@@ -115,6 +133,20 @@ export default class Prediction extends BaseModel {
   @column()
   declare routeEncodedPolyline: string | null
 
+  /** Moment de l'envoi de la requête à Google (null si aucune requête envoyée). */
+  @column.dateTime()
+  declare routeConsultedAt: DateTime | null
+
+  /** Heure de départ transmise à Google (null si omise : départ imminent). */
+  @column.dateTime()
+  declare routeDepartureTimeSent: DateTime | null
+
+  @column()
+  declare googleTrafficDurationSeconds: number | null
+
+  @column()
+  declare googleStaticDurationSeconds: number | null
+
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
 
@@ -131,6 +163,32 @@ export default class Prediction extends BaseModel {
 
   get methodLabel() {
     return METHOD_LABELS[this.predictionMethod]
+  }
+
+  get routeStatusLabel() {
+    return this.routeStatus ? ROUTE_STATUS_LABELS[this.routeStatus] : null
+  }
+
+  get hasCoordinates() {
+    return (
+      this.departureLatitude !== null &&
+      this.departureLongitude !== null &&
+      this.arrivalLatitude !== null &&
+      this.arrivalLongitude !== null
+    )
+  }
+
+  /** Ratio R = durée avec trafic / durée de référence (indicatif, non utilisé pour le niveau). */
+  get trafficRatio() {
+    const t = this.googleTrafficDurationSeconds
+    const s = this.googleStaticDurationSeconds
+    return t !== null && s !== null && s > 0 ? t / s : null
+  }
+
+  /** Délai entre la consultation de Google et le départ demandé, en heures. */
+  get forecastHorizonHours() {
+    if (!this.routeConsultedAt) return null
+    return this.departureDatetime.diff(this.routeConsultedAt, 'hours').hours
   }
 
   get fallbackReasonLabel() {

@@ -42,6 +42,11 @@ export default class MapsService implements MapsProvider {
     private counter: RoutesUsageCounter = new RoutesUsageCounter()
   ) {}
 
+  /** Indique si les appels réels sont autorisés (sans jamais exposer la clé). */
+  isEnabled(): boolean {
+    return this.config.enabled
+  }
+
   /** Contrat MapsProvider : l'itinéraire, ou null s'il est indisponible. */
   async getRoute(from: Place, to: Place, departureAt: DateTime): Promise<RouteEstimate | null> {
     const result = await this.computeRoute(from, to, departureAt)
@@ -59,7 +64,11 @@ export default class MapsService implements MapsProvider {
     const coordinatesStatus = checkCoordinates(from, to)
     if (coordinatesStatus) return this.refuse(coordinatesStatus)
 
-    // 4. Plafond quotidien : réservation AVANT l'envoi. En cas de doute → blocage.
+    // 4. Départ déjà passé : Google ne fournirait que les conditions actuelles,
+    //    sans rapport avec le départ demandé → aucun appel.
+    if (departureAt < DateTime.now().minus({ minutes: 1 })) return this.refuse('depart_passe')
+
+    // 5. Plafond quotidien : réservation AVANT l'envoi. En cas de doute → blocage.
     try {
       if (!(await this.counter.tryReserve(this.config.dailyLimit))) {
         return this.refuse('plafond_atteint')
@@ -69,7 +78,7 @@ export default class MapsService implements MapsProvider {
       return this.refuse('compteur_indisponible')
     }
 
-    // 5. Appel à Google (l'unité est consommée, même en cas d'échec)
+    // 6. Appel à Google (l'unité est consommée, même en cas d'échec)
     return this.callGoogle(from, to, departureAt)
   }
 
@@ -85,15 +94,27 @@ export default class MapsService implements MapsProvider {
       regionCode: 'CI',
       units: 'METRIC',
     }
-    // Google exige une heure de départ future ; trop proche de maintenant,
-    // on l'omet et Google utilise l'heure de la requête.
-    if (departureAt > DateTime.now().plus({ minutes: 1 })) {
-      body.departureTime = departureAt.toUTC().toISO({ suppressMilliseconds: true })
-    }
+    const sent = this.departureTimeToSend(departureAt)
+    if (sent) body.departureTime = sent.toUTC().toISO({ suppressMilliseconds: true })
     return body
   }
 
+  /**
+   * Google exige une heure de départ future ; trop proche de maintenant,
+   * on l'omet et Google utilise l'heure de la requête (renvoie alors null).
+   */
+  departureTimeToSend(departureAt: DateTime): DateTime | null {
+    return departureAt > DateTime.now().plus({ minutes: 1 }) ? departureAt : null
+  }
+
   private async callGoogle(from: Place, to: Place, departureAt: DateTime): Promise<RouteResult> {
+    const consultedAt = DateTime.now()
+    const departureTimeSent = this.departureTimeToSend(departureAt)
+    const result = await this.sendRequest(from, to, departureAt)
+    return { ...result, consultedAt, departureTimeSent }
+  }
+
+  private async sendRequest(from: Place, to: Place, departureAt: DateTime): Promise<RouteResult> {
     const controller = new AbortController()
     const timer = setTimeout(() => controller.abort(), this.config.timeoutMs)
 

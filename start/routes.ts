@@ -38,6 +38,11 @@ router
       .get('/predictions/:id', [PredictionsController, 'show'])
       .where('id', router.matchers.number())
       .as('predictions.show')
+    // Palier 1 : demande explicite de la prévision Google Routes (mode observation)
+    router
+      .post('/predictions/:id/itineraire', [PredictionsController, 'observeRoute'])
+      .where('id', router.matchers.number())
+      .as('predictions.route')
     router.post('/deconnexion', [AuthController, 'logout']).as('logout')
   })
   .use(middleware.auth())

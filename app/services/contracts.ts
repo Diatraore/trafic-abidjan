@@ -61,10 +61,12 @@ export interface RouteEstimate {
 /** Résultat d'une tentative de calcul d'itinéraire (Routes API). */
 export const ROUTE_STATUSES = [
   'ok',
+  'en_cours',
   'desactive',
   'non_configure',
   'coordonnees_manquantes',
   'coordonnees_invalides',
+  'depart_passe',
   'plafond_atteint',
   'compteur_indisponible',
   'delai_depasse',
@@ -92,6 +94,10 @@ export interface RouteResult {
   requestSent: boolean
   /** Détail technique de l'erreur, sans aucune clé */
   detail: string | null
+  /** Moment de l'envoi à Google (null si aucune requête envoyée) */
+  consultedAt?: DateTime | null
+  /** Heure de départ transmise à Google (null si omise : départ imminent) */
+  departureTimeSent?: DateTime | null
 }
 
 /** Prévision météo résumée (étape 5). */
