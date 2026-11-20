@@ -50,12 +50,48 @@ export interface Place {
   longitude: number | null
 }
 
-/** Durées fournies par Google Routes API (étape 5). */
+/** Durées fournies par Google Routes API (phase B). */
 export interface RouteEstimate {
   /** Durée tenant compte du trafic, en minutes */
   trafficDurationMinutes: number
   /** Durée de référence sans trafic, en minutes */
   staticDurationMinutes: number
+}
+
+/** Résultat d'une tentative de calcul d'itinéraire (Routes API). */
+export const ROUTE_STATUSES = [
+  'ok',
+  'desactive',
+  'non_configure',
+  'coordonnees_manquantes',
+  'coordonnees_invalides',
+  'plafond_atteint',
+  'compteur_indisponible',
+  'delai_depasse',
+  'erreur_reseau',
+  'erreur_http',
+  'quota_google_atteint',
+  'reponse_invalide',
+  'aucun_itineraire',
+] as const
+export type RouteStatus = (typeof ROUTE_STATUSES)[number]
+
+/** Itinéraire complet renvoyé par Google (uniquement si statut « ok »). */
+export interface RouteDetails extends RouteEstimate {
+  trafficDurationSeconds: number
+  staticDurationSeconds: number
+  distanceMeters: number | null
+  encodedPolyline: string | null
+}
+
+export interface RouteResult {
+  status: RouteStatus
+  /** null pour tout statut autre que « ok » : aucune durée n'est inventée */
+  route: RouteDetails | null
+  /** true si une requête a réellement été envoyée à Google */
+  requestSent: boolean
+  /** Détail technique de l'erreur, sans aucune clé */
+  detail: string | null
 }
 
 /** Prévision météo résumée (étape 5). */
@@ -90,7 +126,7 @@ export interface PredictionResult {
   fallbackReason: FallbackReason | null
 }
 
-/** Futur MapsService (Google Routes API) — étape 5, non implémenté. */
+/** MapsService (Google Routes API) — préparé en phase B. */
 export interface MapsProvider {
   getRoute(from: Place, to: Place, departureAt: DateTime): Promise<RouteEstimate | null>
 }

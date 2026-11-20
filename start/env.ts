@@ -55,4 +55,14 @@ export default await Env.create(new URL('../', import.meta.url), {
   */
   GOOGLE_MAPS_BROWSER_KEY: Env.schema.string.optional(),
   GOOGLE_MAPS_MAP_ID: Env.schema.string.optional(),
+
+  /*
+  |----------------------------------------------------------
+  | Google Routes API — clé SERVEUR (SECRÈTE), appels désactivés par défaut
+  |----------------------------------------------------------
+  */
+  GOOGLE_ROUTES_ENABLED: Env.schema.boolean.optional(),
+  GOOGLE_ROUTES_SERVER_KEY: Env.schema.string.optional(),
+  GOOGLE_ROUTES_TIMEOUT_MS: Env.schema.number.optional(),
+  GOOGLE_ROUTES_DAILY_LIMIT: Env.schema.number.optional(),
 })

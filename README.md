@@ -22,7 +22,8 @@ Prototype académique d'application web de **prédiction des congestions routiè
 - [x] **Étape 2** : formulaire de prédiction, mécanisme de repli (règles horaires), enregistrement en base
 - [x] **Étape 3** : intégration de l'IA (Groq, `openai/gpt-oss-120b`) avec validation stricte et repli automatique
 - [x] **Étape 4 — phase A** : carte Google Maps, recherche de lieux (Places API New), clic sur la carte, coordonnées enregistrées
-- [ ] Étape 4 — phase B : Routes API côté serveur (durées avec et sans trafic)
+- [x] Étape 4 — phase B : `MapsService` (Routes API) préparé et testé — **appels réels désactivés**, non branché sur la prédiction
+- [ ] Étape 4 — phase C : affichage de l'itinéraire
 - [ ] Étape 5 : Routes API et OpenWeatherMap
 - [ ] Étape 6 : historique, export CSV, tests finaux
 
@@ -77,6 +78,8 @@ app/
   controllers/predictions_controller.ts  Formulaire, estimation, résultat
   services/fallback_service.ts     Algorithme de repli (règles horaires)
   services/ai_prediction_service.ts  Estimation par l'IA (Groq) + validation stricte
+  services/maps_service.ts         Google Routes API (préparé, désactivé par défaut)
+  services/routes_usage_counter.ts Plafond quotidien Routes API (compteur en base)
   services/contracts.ts            Interfaces des services (Maps, Météo, IA)
   helpers/dates.ts                 Dates interprétées dans le fuseau Africa/Abidjan
   middleware/                      auth (pages privées), guest (pages visiteurs)
@@ -85,6 +88,8 @@ app/
   validators/                      Règles VineJS (auth, prédiction, date future)
 config/prediction.ts               Règles horaires et fuseau horaire
 config/ai.ts                       Paramètres de l'IA (lus depuis .env)
+config/routes.ts                   Paramètres Routes API et seuils du ratio (hypothèses)
+commands/routes_tester.ts          Diagnostic et test réel contrôlé de Routes API
 database/migrations/               Création des tables
 resources/views/                   Gabarits Edge (layout, pages)
 start/routes.ts                    Déclaration des routes
@@ -154,6 +159,42 @@ automatiquement à la saisie manuelle. Aucun itinéraire n'est calculé à cette
 |---|---|
 | `GOOGLE_MAPS_BROWSER_KEY` | Clé navigateur, restreinte au site `http://localhost:3333/*` et aux API Maps JavaScript + Places (New) |
 | `GOOGLE_MAPS_MAP_ID` | Identifiant de carte (marqueurs). `DEMO_MAP_ID` pour les tests locaux |
+
+## Google Routes API — phase B (préparée, appels désactivés)
+
+`app/services/maps_service.ts` prépare l'appel à `computeRoutes` (côté serveur) :
+`DRIVE`, `TRAFFIC_AWARE`, masque de champs limité (`routes.duration`,
+`routes.staticDuration`, `routes.distanceMeters`, `routes.polyline.encodedPolyline`),
+délai maximal, validation stricte de la réponse (aucune durée inventée), clé envoyée
+en en-tête et jamais journalisée.
+
+**Protections contre les dépenses**
+
+1. `GOOGLE_ROUTES_ENABLED=false` par défaut : aucune requête n'est envoyée.
+2. Plafond quotidien (`GOOGLE_ROUTES_DAILY_LIMIT`, 50) compté dans la table
+   `routes_api_usage`, par réservation SQL **atomique avant l'envoi** (journée
+   Africa/Abidjan) ; les tentatives en erreur sont comptées ; si le compteur est
+   indisponible, l'appel est bloqué.
+3. Aucun appel automatique : le service n'est appelé par aucune page ; seule la commande
+   `node ace routes:tester --appel-reel` peut déclencher un appel, et uniquement si les
+   appels sont activés.
+
+**Risque résiduel** : la clé serveur n'a pas encore de restriction d'application dans
+Google Cloud. Les protections ci-dessus ne s'appliquent qu'à l'application : si la clé
+était copiée ailleurs, elle pourrait être utilisée sans limite. Elle doit rester dans
+`.env` et être restreinte avant tout déploiement. Le budget Google Cloud (5 $) alerte
+mais ne bloque pas les dépenses.
+
+Le ratio `R = durée avec trafic / durée sans trafic` et ses seuils (`config/routes.ts`)
+sont préparés comme **hypothèses expérimentales** et ne sont **pas utilisés** par la
+logique de prédiction actuelle.
+
+| Variable | Rôle | Défaut |
+|---|---|---|
+| `GOOGLE_ROUTES_ENABLED` | Autorise les appels réels | `false` |
+| `GOOGLE_ROUTES_SERVER_KEY` | Clé serveur (secrète), restreinte à Routes API | vide |
+| `GOOGLE_ROUTES_TIMEOUT_MS` | Délai maximal | `8000` |
+| `GOOGLE_ROUTES_DAILY_LIMIT` | Appels réels maximum par jour | `50` |
 
 ## Données AMUGA
 

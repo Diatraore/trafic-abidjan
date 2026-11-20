@@ -30,7 +30,8 @@ export const plugins: Config['plugins'] = [
  */
 /**
  * SÉCURITÉ DES TESTS : aucun appel réel à un service externe.
- * Le fichier .env local peut contenir de vraies clés (Groq, Google) : une
+ * Le fichier .env local peut contenir de vraies clés (Groq, Google Maps,
+ * Google Routes) et GOOGLE_ROUTES_ENABLED=true : une
  * valeur vide dans .env.test ne suffit pas à les masquer. On les neutralise
  * donc explicitement avant tout test. Les tests qui ont besoin de l'IA ou de
  * la carte utilisent leurs propres fausses clés et des réponses simulées.
@@ -38,9 +39,13 @@ export const plugins: Config['plugins'] = [
 async function neutraliserClesExternes() {
   const { default: aiConfig } = await import('#config/ai')
   const { default: mapsConfig } = await import('#config/maps')
+  const { default: routesConfig } = await import('#config/routes')
   aiConfig.apiKey = undefined
   aiConfig.forceFallback = false
   mapsConfig.browserKey = undefined
+  // Routes API : jamais d'appel réel pendant les tests
+  routesConfig.enabled = false
+  routesConfig.serverKey = undefined
 }
 
 export const runnerHooks: Required<Pick<Config, 'setup' | 'teardown'>> = {

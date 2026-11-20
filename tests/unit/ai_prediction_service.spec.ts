@@ -195,3 +195,13 @@ test.group('Isolation des tests', () => {
     assert.isUndefined(maps.browserKey)
   })
 })
+
+test.group('Isolation des tests — Routes API', () => {
+  test('les appels Routes API sont désactivés et la clé serveur neutralisée', async ({
+    assert,
+  }) => {
+    const { default: routes } = await import('#config/routes')
+    assert.isFalse(routes.enabled)
+    assert.isUndefined(routes.serverKey)
+  })
+})

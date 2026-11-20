@@ -7,6 +7,7 @@ import type {
   FallbackReason,
   PredictionMethod,
   PredictionSource,
+  RouteStatus,
 } from '#services/contracts'
 
 /**
@@ -103,6 +104,16 @@ export default class Prediction extends BaseModel {
 
   @column()
   declare fallbackReason: FallbackReason | null
+
+  /** Phase B (Routes API) : renseignés uniquement lorsque l'intégration sera activée. */
+  @column()
+  declare routeStatus: RouteStatus | null
+
+  @column()
+  declare routeDistanceMeters: number | null
+
+  @column()
+  declare routeEncodedPolyline: string | null
 
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
