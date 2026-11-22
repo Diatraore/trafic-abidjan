@@ -10,7 +10,12 @@ export default defineConfig({
       /**
        * Fichiers d'entrée compilés par Vite (CSS et JavaScript du navigateur)
        */
-      entrypoints: ['resources/css/app.css', 'resources/js/app.js', 'resources/js/map.js'],
+      entrypoints: [
+        'resources/css/app.css',
+        'resources/js/app.js',
+        'resources/js/map.js',
+        'resources/js/route_map.js',
+      ],
 
       /**
        * Recharge le navigateur quand un gabarit Edge est modifié

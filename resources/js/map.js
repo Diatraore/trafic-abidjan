@@ -13,6 +13,8 @@
 |
 */
 
+import { chargerGoogleMaps } from './google_maps_loader.js'
+
 const POINTS = {
   depart: { glyph: 'A', title: 'Départ', color: '#059669' },
   arrivee: { glyph: 'B', title: 'Arrivée', color: '#dc2626' },
@@ -27,7 +29,7 @@ if (root) {
 }
 
 async function demarrer(root) {
-  await chargerGoogleMaps(root.dataset.mapsKey)
+  await chargerGoogleMaps(root.dataset.mapsKey, { onAuthFailure: basculerEnSaisieManuelle })
 
   const { Map } = await google.maps.importLibrary('maps')
   const { AdvancedMarkerElement, PinElement } = await google.maps.importLibrary('marker')
@@ -192,39 +194,6 @@ function creerRecherche(PlaceAutocompleteElement) {
   } catch {
     return new PlaceAutocompleteElement()
   }
-}
-
-/** Charge le script officiel de Google Maps (une seule fois). */
-function chargerGoogleMaps(cle) {
-  if (window.google?.maps?.importLibrary) return Promise.resolve()
-
-  return new Promise((resolve, reject) => {
-    const delai = setTimeout(() => reject(new Error('délai de chargement dépassé')), 15000)
-
-    window.__traficMapsPret = () => {
-      clearTimeout(delai)
-      resolve()
-    }
-    // Appelée par Google si la clé est refusée (restriction, facturation, API désactivée…)
-    window.gm_authFailure = () => basculerEnSaisieManuelle(new Error('clé Google Maps refusée'))
-
-    const params = new URLSearchParams({
-      key: cle,
-      v: 'weekly',
-      loading: 'async',
-      language: 'fr',
-      region: 'CI',
-      callback: '__traficMapsPret',
-    })
-    const script = document.createElement('script')
-    script.src = `https://maps.googleapis.com/maps/api/js?${params}`
-    script.async = true
-    script.onerror = () => {
-      clearTimeout(delai)
-      reject(new Error('script Google Maps non chargé'))
-    }
-    document.head.append(script)
-  })
 }
 
 /** Repli : on masque la carte et on revient à la saisie manuelle. */

@@ -24,7 +24,7 @@ Prototype académique d'application web de **prédiction des congestions routiè
 - [x] **Étape 4 — phase A** : carte Google Maps, recherche de lieux (Places API New), clic sur la carte, coordonnées enregistrées
 - [x] Étape 4 — phase B : `MapsService` (Routes API) préparé et testé — **appels réels désactivés**, non branché sur la prédiction
 - [x] Étape 4 — palier 1 (mode observation) : prévision Google Routes demandée explicitement depuis la page de résultat, enregistrée et affichée, **sans influence sur le niveau de congestion**
-- [ ] Étape 4 — phase C : affichage de l'itinéraire
+- [x] Étape 4 — phase C : tracé de l'itinéraire sur la carte, affiché à la demande à partir de la polyline enregistrée (aucun nouvel appel à Routes API)
 - [ ] Étape 5 : Routes API et OpenWeatherMap
 - [ ] Étape 6 : historique, export CSV, tests finaux
 
@@ -206,6 +206,17 @@ logique de prédiction actuelle.
 | `GOOGLE_ROUTES_SERVER_KEY` | Clé serveur (secrète), restreinte à Routes API | vide |
 | `GOOGLE_ROUTES_TIMEOUT_MS` | Délai maximal | `8000` |
 | `GOOGLE_ROUTES_DAILY_LIMIT` | Appels réels maximum par jour | `50` |
+
+## Phase C — tracé de l'itinéraire
+
+Sur la page de résultat d'une estimation dont la prévision Google Routes est enregistrée,
+le bouton « Afficher l'itinéraire sur la carte » affiche le tracé, les marqueurs A (départ)
+et B (arrivée) et cadre automatiquement la carte. Le tracé est la **polyline enregistrée
+en base**, décodée localement (`app/helpers/polyline.ts`) : **aucun appel à Routes API**.
+Google Maps (clé navigateur) n'est chargé qu'au premier clic, une seule fois. Si la
+polyline est absente ou invalide, ou si la carte ne peut pas se charger, un message
+l'indique et les données chiffrées restent affichées. Le chargeur de Google Maps est
+partagé avec la carte du tableau de bord (`resources/js/google_maps_loader.js`).
 
 ## Données AMUGA
 

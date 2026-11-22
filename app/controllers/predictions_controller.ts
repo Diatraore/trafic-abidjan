@@ -8,6 +8,7 @@ import type { Place, PredictionContext, PredictionResult } from '#services/contr
 import { createPredictionValidator } from '#validators/prediction'
 import { toAbidjanDateTime, todayInAbidjan } from '#helpers/dates'
 import mapsConfig from '#config/maps'
+import { decodePolyline } from '#helpers/polyline'
 import RouteObservationService from '#services/route_observation_service'
 
 /**
@@ -152,9 +153,21 @@ export default class PredictionsController {
 
     // Seul un booléen est transmis à la vue : jamais la clé serveur.
     const observation = await app.container.make(RouteObservationService)
+
+    // Phase C : tracé relu en base et décodé localement (aucun appel à Routes API).
+    const routePath =
+      prediction.routeStatus === 'ok' ? decodePolyline(prediction.routeEncodedPolyline) : null
+
     return view.render('pages/predictions/show', {
       prediction,
       routesEnabled: observation.appelsActives(),
+      routePath,
+      // Uniquement la clé NAVIGATEUR (restreinte), comme sur le tableau de bord
+      maps: {
+        enabled: Boolean(mapsConfig.browserKey),
+        browserKey: mapsConfig.browserKey ?? '',
+        mapId: mapsConfig.mapId,
+      },
     })
   }
 }
