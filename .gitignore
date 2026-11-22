@@ -32,3 +32,6 @@ donnees_amuga/
 *.xlsx
 *.xls
 *.csv
+
+# Exports CSV des estimations (usage local uniquement, données potentiellement personnelles)
+exports/

@@ -27,7 +27,8 @@ Prototype académique d'application web de **prédiction des congestions routiè
 - [x] Étape 4 — phase C : tracé de l'itinéraire sur la carte, affiché à la demande à partir de la polyline enregistrée (aucun nouvel appel à Routes API)
 - [ ] Étape 5 : Routes API et OpenWeatherMap
 - [x] Historique complet (`/historique`) : estimations de l'utilisateur connecté, 10 par page
-- [ ] Étape 6 : export CSV, comparaison IA / repli, tests finaux
+- [x] Export CSV local (`node ace predictions:export`)
+- [ ] Comparaison IA / repli, tests finaux
 
 ## Installation (Windows / PowerShell)
 
@@ -218,6 +219,24 @@ Google Maps (clé navigateur) n'est chargé qu'au premier clic, une seule fois. 
 polyline est absente ou invalide, ou si la carte ne peut pas se charger, un message
 l'indique et les données chiffrées restent affichées. Le chargeur de Google Maps est
 partagé avec la carte du tableau de bord (`resources/js/google_maps_loader.js`).
+
+## Export CSV (usage local)
+
+```powershell
+node ace predictions:export                                   # toutes les estimations
+node ace predictions:export --depuis 2026-11-01 --jusqu-au 2026-11-30
+node ace predictions:export --sans-libelles                   # données identifiantes réduites
+```
+
+Le fichier est écrit dans `exports/` (exclu de Git) ; aucune page web ne permet de le
+télécharger. Il ne contient ni nom, ni email, ni mot de passe. Format Excel français :
+séparateur `;`, virgule décimale, UTF-8 avec BOM, dates en heure d'Abidjan. Les cellules
+texte commençant par `=`, `+`, `-`, `@` sont neutralisées (injection de formules).
+
+`--sans-libelles` retire les libellés et explications, arrondit les coordonnées (~110 m)
+et remplace l'utilisateur par un pseudonyme propre à l'export. C'est une **réduction des
+données identifiantes, pas une anonymisation garantie** (un trajet récurrent peut rester
+ré-identifiable).
 
 ## Données AMUGA
 
