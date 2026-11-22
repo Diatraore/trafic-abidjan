@@ -19,6 +19,9 @@ import RouteObservationService from '#services/route_observation_service'
  * Les services sont fournis par le conteneur d'AdonisJS (@inject),
  * ce qui permet de les remplacer facilement dans les tests.
  */
+/** Nombre d'estimations par page dans l'historique. */
+const ESTIMATIONS_PAR_PAGE = 10
+
 @inject()
 export default class PredictionsController {
   constructor(
@@ -44,6 +47,26 @@ export default class PredictionsController {
     }
 
     return view.render('pages/dashboard', { minDate: todayInAbidjan(), recentPredictions, maps })
+  }
+
+  /**
+   * Historique complet : uniquement les estimations de l'utilisateur connecté,
+   * les plus récentes d'abord, 10 par page. Aucun appel à un service externe.
+   */
+  async index({ auth, request, view }: HttpContext) {
+    // Numéro de page sûr : toute valeur invalide (texte, négatif…) donne la page 1
+    const demande = Number.parseInt(String(request.input('page', '1')), 10)
+    const page = Number.isInteger(demande) && demande > 0 ? demande : 1
+
+    const estimations = await auth
+      .user!.related('predictions')
+      .query()
+      .orderBy('created_at', 'desc')
+      .orderBy('id', 'desc')
+      .paginate(page, ESTIMATIONS_PAR_PAGE)
+    estimations.baseUrl('/historique')
+
+    return view.render('pages/predictions/index', { estimations })
   }
 
   /** Traite le formulaire et enregistre l'estimation. */

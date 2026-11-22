@@ -33,6 +33,7 @@ router
   .group(() => {
     // Le tableau de bord contient le formulaire de prédiction
     router.get('/tableau-de-bord', [PredictionsController, 'create']).as('dashboard')
+    router.get('/historique', [PredictionsController, 'index']).as('predictions.index')
     router.post('/predictions', [PredictionsController, 'store']).as('predictions.store')
     router
       .get('/predictions/:id', [PredictionsController, 'show'])

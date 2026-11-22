@@ -26,7 +26,8 @@ Prototype académique d'application web de **prédiction des congestions routiè
 - [x] Étape 4 — palier 1 (mode observation) : prévision Google Routes demandée explicitement depuis la page de résultat, enregistrée et affichée, **sans influence sur le niveau de congestion**
 - [x] Étape 4 — phase C : tracé de l'itinéraire sur la carte, affiché à la demande à partir de la polyline enregistrée (aucun nouvel appel à Routes API)
 - [ ] Étape 5 : Routes API et OpenWeatherMap
-- [ ] Étape 6 : historique, export CSV, tests finaux
+- [x] Historique complet (`/historique`) : estimations de l'utilisateur connecté, 10 par page
+- [ ] Étape 6 : export CSV, comparaison IA / repli, tests finaux
 
 ## Installation (Windows / PowerShell)
 
