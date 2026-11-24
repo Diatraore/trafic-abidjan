@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto'
 import vine, { errors as vineErrors } from '@vinejs/vine'
 import { DateTime } from 'luxon'
 import logger from '@adonisjs/core/services/logger'
@@ -65,7 +66,7 @@ const RESPONSE_SCHEMA = {
  * Instructions données au modèle. Elles rappellent que le modèle
  * n'observe PAS le trafic réel et ne doit inventer aucune durée.
  */
-const SYSTEM_PROMPT = `Tu es le module d'estimation expérimentale d'un prototype académique qui estime la congestion routière à Abidjan (Côte d'Ivoire).
+export const SYSTEM_PROMPT = `Tu es le module d'estimation expérimentale d'un prototype académique qui estime la congestion routière à Abidjan (Côte d'Ivoire).
 Règles impératives :
 1. Tu n'as AUCUN accès au trafic réel ni à des données historiques de trafic. Ne prétends jamais observer ou connaître le trafic actuel.
 2. Appuie-toi uniquement sur les données fournies (lieux, date, jour, heure, durées Google si présentes, météo si présente) et sur des connaissances générales, présentées comme des hypothèses.
@@ -73,6 +74,24 @@ Règles impératives :
 4. duration_minutes : si "itineraire_google" vaut null, réponds obligatoirement null (aucune durée ne doit être inventée). Sinon, un entier positif cohérent avec les durées Google.
 5. explanation : 1 à 3 phrases en français, 400 caractères maximum, indiquant sur quoi repose l'estimation et précisant qu'il s'agit d'une estimation et non d'une mesure.
 Réponds uniquement avec un objet JSON contenant les clés congestion_level, duration_minutes et explanation.`
+
+/**
+ * Paramètres de génération envoyés à Groq (documentés pour la reproductibilité).
+ * - temperature 0.2 : faible créativité, réponses plus stables ;
+ * - reasoning_effort « low » : raisonnement court, réponse plus rapide (gpt-oss) ;
+ * - max_completion_tokens : limite de longueur de la réponse.
+ */
+export const GENERATION_PARAMS = {
+  temperature: 0.2,
+  reasoning_effort: 'low',
+  max_completion_tokens: 1024,
+} as const
+
+/**
+ * Version du prompt : empreinte SHA-256 (12 premiers caractères) du prompt
+ * système. Elle change automatiquement si le texte du prompt est modifié.
+ */
+export const PROMPT_VERSION = createHash('sha256').update(SYSTEM_PROMPT).digest('hex').slice(0, 12)
 
 /**
  * Service d'estimation par intelligence artificielle (API Groq).
@@ -225,11 +244,7 @@ export default class AiPredictionService implements AiPredictor {
         { role: 'system', content: SYSTEM_PROMPT },
         { role: 'user', content: this.buildUserMessage(context) },
       ],
-      // Faible créativité : on veut des réponses stables et reproductibles.
-      temperature: 0.2,
-      // Raisonnement court : réponse plus rapide (paramètre propre aux modèles gpt-oss).
-      reasoning_effort: 'low',
-      max_completion_tokens: 1024,
+      ...GENERATION_PARAMS,
       response_format:
         this.config.responseFormat === 'json_schema'
           ? {

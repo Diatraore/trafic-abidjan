@@ -1,0 +1,294 @@
+{
+  "_description": "Scénarios fixes de comparaison IA / repli (Trafic Abidjan). Coordonnées approximatives de quartiers publics, dates fixes (heure d'Abidjan) pour la reproductibilité. Aucune donnée AMUGA.",
+  "version": 1,
+  "scenarios": [
+    {
+      "id": "S01",
+      "trajet": "T1",
+      "description": "Riviera 2 → Plateau, lundi matin",
+      "depart": {
+        "libelle": "Riviera 2, Cocody",
+        "latitude": 5.359952,
+        "longitude": -3.98211
+      },
+      "arrivee": {
+        "libelle": "Plateau",
+        "latitude": 5.32387,
+        "longitude": -4.01968
+      },
+      "depart_prevu": "2026-12-07T07:30"
+    },
+    {
+      "id": "S02",
+      "trajet": "T1",
+      "description": "Riviera 2 → Plateau, lundi midi",
+      "depart": {
+        "libelle": "Riviera 2, Cocody",
+        "latitude": 5.359952,
+        "longitude": -3.98211
+      },
+      "arrivee": {
+        "libelle": "Plateau",
+        "latitude": 5.32387,
+        "longitude": -4.01968
+      },
+      "depart_prevu": "2026-12-07T12:30"
+    },
+    {
+      "id": "S03",
+      "trajet": "T1",
+      "description": "Riviera 2 → Plateau, lundi soir",
+      "depart": {
+        "libelle": "Riviera 2, Cocody",
+        "latitude": 5.359952,
+        "longitude": -3.98211
+      },
+      "arrivee": {
+        "libelle": "Plateau",
+        "latitude": 5.32387,
+        "longitude": -4.01968
+      },
+      "depart_prevu": "2026-12-07T17:30"
+    },
+    {
+      "id": "S04",
+      "trajet": "T1",
+      "description": "Riviera 2 → Plateau, samedi matin",
+      "depart": {
+        "libelle": "Riviera 2, Cocody",
+        "latitude": 5.359952,
+        "longitude": -3.98211
+      },
+      "arrivee": {
+        "libelle": "Plateau",
+        "latitude": 5.32387,
+        "longitude": -4.01968
+      },
+      "depart_prevu": "2026-12-05T07:30"
+    },
+    {
+      "id": "S05",
+      "trajet": "T1",
+      "description": "Riviera 2 → Plateau, samedi midi",
+      "depart": {
+        "libelle": "Riviera 2, Cocody",
+        "latitude": 5.359952,
+        "longitude": -3.98211
+      },
+      "arrivee": {
+        "libelle": "Plateau",
+        "latitude": 5.32387,
+        "longitude": -4.01968
+      },
+      "depart_prevu": "2026-12-05T12:30"
+    },
+    {
+      "id": "S06",
+      "trajet": "T1",
+      "description": "Riviera 2 → Plateau, samedi soir",
+      "depart": {
+        "libelle": "Riviera 2, Cocody",
+        "latitude": 5.359952,
+        "longitude": -3.98211
+      },
+      "arrivee": {
+        "libelle": "Plateau",
+        "latitude": 5.32387,
+        "longitude": -4.01968
+      },
+      "depart_prevu": "2026-12-05T17:30"
+    },
+    {
+      "id": "S07",
+      "trajet": "T2",
+      "description": "Plateau → Riviera 2, lundi matin",
+      "depart": {
+        "libelle": "Plateau",
+        "latitude": 5.32387,
+        "longitude": -4.01968
+      },
+      "arrivee": {
+        "libelle": "Riviera 2, Cocody",
+        "latitude": 5.359952,
+        "longitude": -3.98211
+      },
+      "depart_prevu": "2026-12-07T07:30"
+    },
+    {
+      "id": "S08",
+      "trajet": "T2",
+      "description": "Plateau → Riviera 2, lundi midi",
+      "depart": {
+        "libelle": "Plateau",
+        "latitude": 5.32387,
+        "longitude": -4.01968
+      },
+      "arrivee": {
+        "libelle": "Riviera 2, Cocody",
+        "latitude": 5.359952,
+        "longitude": -3.98211
+      },
+      "depart_prevu": "2026-12-07T12:30"
+    },
+    {
+      "id": "S09",
+      "trajet": "T2",
+      "description": "Plateau → Riviera 2, lundi soir",
+      "depart": {
+        "libelle": "Plateau",
+        "latitude": 5.32387,
+        "longitude": -4.01968
+      },
+      "arrivee": {
+        "libelle": "Riviera 2, Cocody",
+        "latitude": 5.359952,
+        "longitude": -3.98211
+      },
+      "depart_prevu": "2026-12-07T17:30"
+    },
+    {
+      "id": "S10",
+      "trajet": "T2",
+      "description": "Plateau → Riviera 2, samedi matin",
+      "depart": {
+        "libelle": "Plateau",
+        "latitude": 5.32387,
+        "longitude": -4.01968
+      },
+      "arrivee": {
+        "libelle": "Riviera 2, Cocody",
+        "latitude": 5.359952,
+        "longitude": -3.98211
+      },
+      "depart_prevu": "2026-12-05T07:30"
+    },
+    {
+      "id": "S11",
+      "trajet": "T2",
+      "description": "Plateau → Riviera 2, samedi midi",
+      "depart": {
+        "libelle": "Plateau",
+        "latitude": 5.32387,
+        "longitude": -4.01968
+      },
+      "arrivee": {
+        "libelle": "Riviera 2, Cocody",
+        "latitude": 5.359952,
+        "longitude": -3.98211
+      },
+      "depart_prevu": "2026-12-05T12:30"
+    },
+    {
+      "id": "S12",
+      "trajet": "T2",
+      "description": "Plateau → Riviera 2, samedi soir",
+      "depart": {
+        "libelle": "Plateau",
+        "latitude": 5.32387,
+        "longitude": -4.01968
+      },
+      "arrivee": {
+        "libelle": "Riviera 2, Cocody",
+        "latitude": 5.359952,
+        "longitude": -3.98211
+      },
+      "depart_prevu": "2026-12-05T17:30"
+    },
+    {
+      "id": "S13",
+      "trajet": "T3",
+      "description": "Yopougon → Adjamé, lundi matin",
+      "depart": {
+        "libelle": "Yopougon (Mairie)",
+        "latitude": 5.34,
+        "longitude": -4.072
+      },
+      "arrivee": {
+        "libelle": "Adjamé (Gare nord)",
+        "latitude": 5.357,
+        "longitude": -4.022
+      },
+      "depart_prevu": "2026-12-07T07:30"
+    },
+    {
+      "id": "S14",
+      "trajet": "T3",
+      "description": "Yopougon → Adjamé, lundi midi",
+      "depart": {
+        "libelle": "Yopougon (Mairie)",
+        "latitude": 5.34,
+        "longitude": -4.072
+      },
+      "arrivee": {
+        "libelle": "Adjamé (Gare nord)",
+        "latitude": 5.357,
+        "longitude": -4.022
+      },
+      "depart_prevu": "2026-12-07T12:30"
+    },
+    {
+      "id": "S15",
+      "trajet": "T3",
+      "description": "Yopougon → Adjamé, lundi soir",
+      "depart": {
+        "libelle": "Yopougon (Mairie)",
+        "latitude": 5.34,
+        "longitude": -4.072
+      },
+      "arrivee": {
+        "libelle": "Adjamé (Gare nord)",
+        "latitude": 5.357,
+        "longitude": -4.022
+      },
+      "depart_prevu": "2026-12-07T17:30"
+    },
+    {
+      "id": "S16",
+      "trajet": "T3",
+      "description": "Yopougon → Adjamé, samedi matin",
+      "depart": {
+        "libelle": "Yopougon (Mairie)",
+        "latitude": 5.34,
+        "longitude": -4.072
+      },
+      "arrivee": {
+        "libelle": "Adjamé (Gare nord)",
+        "latitude": 5.357,
+        "longitude": -4.022
+      },
+      "depart_prevu": "2026-12-05T07:30"
+    },
+    {
+      "id": "S17",
+      "trajet": "T3",
+      "description": "Yopougon → Adjamé, samedi midi",
+      "depart": {
+        "libelle": "Yopougon (Mairie)",
+        "latitude": 5.34,
+        "longitude": -4.072
+      },
+      "arrivee": {
+        "libelle": "Adjamé (Gare nord)",
+        "latitude": 5.357,
+        "longitude": -4.022
+      },
+      "depart_prevu": "2026-12-05T12:30"
+    },
+    {
+      "id": "S18",
+      "trajet": "T3",
+      "description": "Yopougon → Adjamé, samedi soir",
+      "depart": {
+        "libelle": "Yopougon (Mairie)",
+        "latitude": 5.34,
+        "longitude": -4.072
+      },
+      "arrivee": {
+        "libelle": "Adjamé (Gare nord)",
+        "latitude": 5.357,
+        "longitude": -4.022
+      },
+      "depart_prevu": "2026-12-05T17:30"
+    }
+  ]
+}

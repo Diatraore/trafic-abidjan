@@ -28,7 +28,8 @@ Prototype académique d'application web de **prédiction des congestions routiè
 - [ ] Étape 5 : Routes API et OpenWeatherMap
 - [x] Historique complet (`/historique`) : estimations de l'utilisateur connecté, 10 par page
 - [x] Export CSV local (`node ace predictions:export`)
-- [ ] Comparaison IA / repli, tests finaux
+- [x] Script de comparaison IA / repli (`node ace comparaison:executer`) — essai à blanc par défaut
+- [ ] Expérimentation réelle de comparaison (6 scénarios × 2 répétitions), tests finaux
 
 ## Installation (Windows / PowerShell)
 
@@ -237,6 +238,28 @@ texte commençant par `=`, `+`, `-`, `@` sont neutralisées (injection de formul
 et remplace l'utilisateur par un pseudonyme propre à l'export. C'est une **réduction des
 données identifiantes, pas une anonymisation garantie** (un trajet récurrent peut rester
 ré-identifiable).
+
+## Comparaison IA / repli (reproductible)
+
+```powershell
+node ace comparaison:executer                                       # essai à blanc, 18 scénarios
+node ace comparaison:executer --scenarios 1-6 --repetitions 2       # essai à blanc, sous-ensemble
+node ace comparaison:executer --scenarios 1-6 --repetitions 2 --appel-ia   # VRAIS appels à Groq
+```
+
+18 scénarios fixes (`database/scenarios/comparaison.json` : 3 trajets × 6 créneaux à dates
+fixes). Le même contexte (lieux, date, heure ; ni Google Routes, ni météo, ni données AMUGA)
+est donné au repli et à l'IA. Sans `--appel-ia`, aucun appel n'est fait. Avec `--appel-ia`,
+le nombre de tentatives est plafonné (`--max-appels`, 12 par défaut), une pause sépare les
+appels (`--pause-ms`, 2 s) et l'exécution est refusée sans clé Groq. Rien n'est écrit dans
+les estimations.
+
+Résultats dans `exports/` (exclu de Git) : un CSV détaillé (une ligne par scénario et
+répétition) et un fichier `_meta.json` (commit, empreinte des scénarios, modèle, paramètres
+de génération, version et texte du prompt, résumé). Le résumé distingue l'**accord entre
+méthodes** (sur les seules réponses IA valides ; un échec de Groq n'est jamais compté comme
+une réponse IA) et la **stabilité de l'IA** entre répétitions. **Ni l'un ni l'autre ne mesure
+l'exactitude prédictive**, qui ne peut être établie sans observations indépendantes du trafic.
 
 ## Données AMUGA
 
