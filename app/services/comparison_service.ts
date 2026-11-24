@@ -93,7 +93,40 @@ export async function chargerScenarios(chemin: string) {
     ids.add(s.id)
   }
   const empreinte = createHash('sha256').update(texte).digest('hex').slice(0, 12)
-  return { scenarios, empreinte, version: donnees.version ?? null }
+  const plans: Record<string, PlanExperimentation> = donnees.plans ?? {}
+  for (const [nom, plan] of Object.entries(plans)) {
+    const valide =
+      Array.isArray(plan.scenarios) &&
+      plan.scenarios.length > 0 &&
+      plan.scenarios.every((id) => ids.has(id)) &&
+      Number.isInteger(plan.repetitions) &&
+      plan.repetitions >= 1
+    if (!valide) throw new Error(`Plan d'expérimentation invalide : ${nom}`)
+  }
+  return { scenarios, empreinte, version: donnees.version ?? null, plans }
+}
+
+/**
+ * Plan d'expérimentation PRÉ-ENREGISTRÉ dans le fichier de scénarios :
+ * la sélection et le nombre de répétitions sont fixés avant les appels réels
+ * (et datés par l'historique Git), pour éviter tout ajustement a posteriori.
+ */
+export interface PlanExperimentation {
+  description?: string
+  fixe_le?: string
+  scenarios: string[]
+  repetitions: number
+  justification?: string
+}
+
+/** Scénarios dont la date de départ est déjà passée (contrôle de cohérence). */
+export function departsPasses(
+  scenarios: Scenario[],
+  maintenant: DateTime = DateTime.now()
+): string[] {
+  return scenarios
+    .filter((s) => DateTime.fromISO(s.depart_prevu, { zone: APP_TIMEZONE }) <= maintenant)
+    .map((s) => s.id)
 }
 
 function coordonneeValide(p: any) {

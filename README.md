@@ -244,11 +244,18 @@ ré-identifiable).
 ```powershell
 node ace comparaison:executer                                       # essai à blanc, 18 scénarios
 node ace comparaison:executer --scenarios 1-6 --repetitions 2       # essai à blanc, sous-ensemble
-node ace comparaison:executer --scenarios 1-6 --repetitions 2 --appel-ia   # VRAIS appels à Groq
+node ace comparaison:executer --plan experimentation_1             # essai à blanc du plan pré-enregistré
+node ace comparaison:executer --plan experimentation_1 --appel-ia  # VRAIS appels à Groq (12 au maximum)
 ```
 
-18 scénarios fixes (`database/scenarios/comparaison.json` : 3 trajets × 6 créneaux à dates
-fixes). Le même contexte (lieux, date, heure ; ni Google Routes, ni météo, ni données AMUGA)
+**Plan pré-enregistré `experimentation_1`** (fixé le 24/11/2026, avant tout appel réel, dans
+le fichier de scénarios) : S01, S03, S07, S09, S17, S18 × 2 répétitions. Avec `--plan`, la
+sélection et les répétitions ne peuvent pas être modifiées en ligne de commande, pour éviter
+tout ajustement a posteriori. Les départs déjà passés sont signalés (le repli et l'IA
+n'utilisent que le jour et l'heure).
+
+18 scénarios fixes (`database/scenarios/comparaison.json`, version 2 : 3 trajets × 6 créneaux
+à dates fixes — lundi 7/12 à 7 h 30, 12 h 30, 17 h 30 ; samedi 5/12 à 7 h 30, 12 h 30, 22 h 30). Le même contexte (lieux, date, heure ; ni Google Routes, ni météo, ni données AMUGA)
 est donné au repli et à l'IA. Sans `--appel-ia`, aucun appel n'est fait. Avec `--appel-ia`,
 le nombre de tentatives est plafonné (`--max-appels`, 12 par défaut), une pause sépare les
 appels (`--pause-ms`, 2 s) et l'exécution est refusée sans clé Groq. Rien n'est écrit dans

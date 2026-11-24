@@ -1,5 +1,6 @@
 import { test } from '@japa/runner'
 import app from '@adonisjs/core/services/app'
+import { DateTime } from 'luxon'
 import AiPredictionService, {
   GENERATION_PARAMS,
   PROMPT_VERSION,
@@ -9,6 +10,7 @@ import {
   FICHIER_SCENARIOS,
   chargerScenarios,
   contexteDuScenario,
+  departsPasses,
   executerComparaison,
   resumer,
   selectionnerScenarios,
@@ -93,6 +95,66 @@ test.group('Comparaison — scénarios', () => {
   })
 })
 
+test.group('Comparaison — version 2 et plan pré-enregistré', () => {
+  test('le créneau samedi 22 h 30 couvre une situation fluide', async ({ assert }) => {
+    const liste = await scenarios()
+    const nuit = liste.filter((s) => s.depart_prevu.endsWith('T22:30'))
+    assert.deepEqual(
+      nuit.map((s) => s.id),
+      ['S06', 'S12', 'S18']
+    )
+    assert.isFalse(liste.some((s) => s.depart_prevu === '2026-12-05T17:30'))
+    const lignes = await executerComparaison(nuit, { repetitions: 1, ia: null })
+    assert.isTrue(lignes.every((l) => l.niveauRepli === 'fluide'))
+  })
+
+  test('le plan experimentation_1 est fixé : 6 scénarios, 2 répétitions', async ({ assert }) => {
+    const charges = await chargerScenarios(app.makePath(FICHIER_SCENARIOS))
+    assert.equal(charges.version, 2)
+    const plan = charges.plans.experimentation_1
+    assert.deepEqual(plan.scenarios, ['S01', 'S03', 'S07', 'S09', 'S17', 'S18'])
+    assert.equal(plan.repetitions, 2)
+    assert.equal(plan.scenarios.length * plan.repetitions, 12)
+
+    const retenus = selectionnerScenarios(charges.scenarios, plan.scenarios.join(','))
+    assert.deepEqual(
+      retenus.map((s) => s.description),
+      [
+        'Riviera 2 → Plateau, lundi matin',
+        'Riviera 2 → Plateau, lundi soir',
+        'Plateau → Riviera 2, lundi matin',
+        'Plateau → Riviera 2, lundi soir',
+        'Yopougon → Adjamé, samedi midi',
+        'Yopougon → Adjamé, samedi nuit (22 h 30)',
+      ]
+    )
+    const lignes = await executerComparaison(retenus, { repetitions: 1, ia: null })
+    assert.deepEqual(
+      lignes.map((l) => l.niveauRepli),
+      ['dense', 'dense', 'dense', 'dense', 'modere', 'fluide']
+    )
+  })
+
+  test('détection des départs déjà passés', async ({ assert }) => {
+    const liste = await scenarios()
+    const avant = DateTime.fromISO('2026-11-24T12:00', { zone: 'Africa/Abidjan' })
+    assert.deepEqual(departsPasses(liste, avant), [])
+    const entre = DateTime.fromISO('2026-12-06T12:00', { zone: 'Africa/Abidjan' })
+    // Les créneaux du samedi 5/12 sont passés, ceux du lundi 7/12 non
+    assert.deepEqual(departsPasses(liste, entre), [
+      'S04',
+      'S05',
+      'S06',
+      'S10',
+      'S11',
+      'S12',
+      'S16',
+      'S17',
+      'S18',
+    ])
+  })
+})
+
 test.group('Comparaison — exécution et analyse', () => {
   test('essai à blanc : aucun appel, repli seul', async ({ assert }) => {
     const selection = selectionnerScenarios(await scenarios(), '1-6')
@@ -103,7 +165,8 @@ test.group('Comparaison — exécution et analyse', () => {
     const resume = resumer(lignes, 2)
     assert.equal(resume.tentativesIa, 0)
     assert.isNull(resume.tauxAccord)
-    assert.deepEqual(resume.repartitionRepli, { fluide: 0, modere: 2, dense: 4, bloque: 0 })
+    // Lundi 7 h 30, 12 h 30, 17 h 30 ; samedi 7 h 30, 12 h 30, 22 h 30
+    assert.deepEqual(resume.repartitionRepli, { fluide: 1, modere: 2, dense: 3, bloque: 0 })
   })
 
   test('même contexte transmis à l’IA que celui utilisé par le repli', async ({ assert }) => {

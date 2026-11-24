@@ -120,6 +120,47 @@ test.group('Comparaison — commande', (group) => {
     assert.equal(appelsReseau, 0)
   })
 
+  test('--plan experimentation_1 : sélection et répétitions du plan, documentées', async ({
+    assert,
+  }) => {
+    const commande = await executer(['--plan', 'experimentation_1'])
+
+    commande.assertSucceeded()
+    assert.equal(appelsReseau, 0)
+    commande.assertLogMatches(/Plan pré-enregistré « experimentation_1 »/)
+    const meta = JSON.parse(await readFile(commande.fichierMeta!, 'utf8'))
+    assert.equal(meta.repetitions, 2)
+    assert.equal(meta.scenarios.version, 2)
+    assert.equal(meta.scenarios.plan.nom, 'experimentation_1')
+    assert.deepEqual(meta.scenarios.identifiants, ['S01', 'S03', 'S07', 'S09', 'S17', 'S18'])
+    assert.isArray(meta.scenarios.departs_passes)
+    const csv = await readFile(commande.fichierCsv!, 'utf8')
+    assert.lengthOf(csv.trimEnd().split('\r\n'), 13)
+  })
+
+  test('le plan ne peut pas être modifié en ligne de commande', async () => {
+    const avecSelection = await executer(['--plan', 'experimentation_1', '--scenarios', '1-6'])
+    avecSelection.assertFailed()
+    avecSelection.assertLogMatches(/incompatibles/)
+
+    const avecRepetitions = await executer(['--plan', 'experimentation_1', '--repetitions', '3'])
+    avecRepetitions.assertFailed()
+    avecRepetitions.assertLogMatches(/fixe 2 répétition/)
+
+    const inconnu = await executer(['--plan', 'experimentation_9'])
+    inconnu.assertFailed()
+  })
+
+  test('--plan experimentation_1 --appel-ia : 12 tentatives, dans le plafond par défaut', async ({
+    assert,
+  }) => {
+    // Sans clé (tests) : refus après le contrôle du plafond, aucun appel
+    const commande = await executer(['--plan', 'experimentation_1', '--appel-ia'])
+    commande.assertFailed()
+    commande.assertLogMatches(/GROQ_API_KEY absente/)
+    assert.equal(appelsReseau, 0)
+  })
+
   test('paramètres invalides refusés', async () => {
     for (const args of [
       ['--repetitions', '6'],

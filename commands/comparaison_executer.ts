@@ -33,7 +33,12 @@ export default class ComparaisonExecuter extends BaseCommand {
   })
   declare scenarios: string
 
-  @flags.number({ description: 'Répétitions par scénario (1 à 5)', default: 1 })
+  @flags.string({
+    description: 'Plan pré-enregistré dans le fichier de scénarios (ex. experimentation_1)',
+  })
+  declare plan: string
+
+  @flags.number({ description: 'Répétitions par scénario (1 à 5, défaut : 1 ou celles du plan)' })
   declare repetitions: number
 
   @flags.boolean({
@@ -68,7 +73,10 @@ export default class ComparaisonExecuter extends BaseCommand {
     const { APP_TIMEZONE } = await import('#config/prediction')
 
     // 1. Paramètres
-    if (!Number.isInteger(this.repetitions) || this.repetitions < 1 || this.repetitions > 5) {
+    if (
+      this.repetitions !== undefined &&
+      (!Number.isInteger(this.repetitions) || this.repetitions < 1 || this.repetitions > 5)
+    ) {
       return this.echouer('--repetitions doit être un entier entre 1 et 5.')
     }
     if (
@@ -81,11 +89,42 @@ export default class ComparaisonExecuter extends BaseCommand {
 
     let charges
     let selection
+    let plan: Awaited<ReturnType<typeof svc.chargerScenarios>>['plans'][string] | null = null
     try {
       charges = await svc.chargerScenarios(this.app.makePath(svc.FICHIER_SCENARIOS))
-      selection = svc.selectionnerScenarios(charges.scenarios, this.scenarios)
+      if (this.plan) {
+        // Plan pré-enregistré : sélection et répétitions NON modifiables en ligne de commande
+        plan = charges.plans[this.plan] ?? null
+        if (!plan) return this.echouer(`Plan inconnu « ${this.plan} ».`)
+        if (this.scenarios) {
+          return this.echouer(
+            '--plan et --scenarios sont incompatibles : la sélection est fixée par le plan.'
+          )
+        }
+        if (this.repetitions !== undefined && this.repetitions !== plan.repetitions) {
+          return this.echouer(
+            `Le plan « ${this.plan} » fixe ${plan.repetitions} répétition(s) : --repetitions ne peut pas le modifier.`
+          )
+        }
+        this.repetitions = plan.repetitions
+        selection = svc.selectionnerScenarios(charges.scenarios, plan.scenarios.join(','))
+      } else {
+        selection = svc.selectionnerScenarios(charges.scenarios, this.scenarios)
+      }
     } catch (error) {
       return this.echouer((error as Error).message)
+    }
+    this.repetitions = this.repetitions ?? 1
+    if (this.repetitions > 5) return this.echouer('--repetitions doit être un entier entre 1 et 5.')
+
+    // Contrôle de cohérence : départs déjà passés (les services n'en dépendent pas,
+    // mais l'expérimentation est conçue pour des départs futurs)
+    const passes = svc.departsPasses(selection)
+    if (passes.length > 0) {
+      this.logger.warning(
+        `Départ(s) déjà passé(s) : ${passes.join(', ')}. Le repli et l'IA n'utilisent que le jour et ` +
+          "l'heure, mais signalez-le dans l'analyse."
+      )
     }
 
     const tentativesPrevues = selection.length * this.repetitions
@@ -105,6 +144,11 @@ export default class ComparaisonExecuter extends BaseCommand {
       }
     }
 
+    if (this.plan) {
+      this.logger.info(
+        `Plan pré-enregistré « ${this.plan} » (fixé le ${plan?.fixe_le ?? '?'}) : ${selection.map((x) => x.id).join(', ')}`
+      )
+    }
     this.logger.info(
       `Mode ${mode === 'reel' ? 'RÉEL (appels Groq)' : 'ESSAI À BLANC (aucun appel)'} — ` +
         `${selection.length} scénario(s) × ${this.repetitions} répétition(s)` +
@@ -214,8 +258,10 @@ export default class ComparaisonExecuter extends BaseCommand {
         fichier: svc.FICHIER_SCENARIOS,
         version: charges.version,
         empreinte_sha256: charges.empreinte,
-        selection: this.scenarios ?? 'tous',
+        plan: this.plan ? { nom: this.plan, ...plan } : null,
+        selection: this.plan ? `plan ${this.plan}` : (this.scenarios ?? 'tous'),
         identifiants: selection.map((s) => s.id),
+        departs_passes: passes,
       },
       repetitions: this.repetitions,
       max_appels: this.maxAppels,
